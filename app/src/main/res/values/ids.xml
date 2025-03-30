@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="go_live_button" type="id" />
+    <item name="retry_button" type="id" />
+    <item name="retry_options_container" type="id" />
+</resources> 

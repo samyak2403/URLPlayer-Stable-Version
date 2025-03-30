@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="item_spacing">8dp</dimen>
+    <!-- Grid spacing for channel items -->
+    <dimen name="grid_spacing">8dp</dimen>
+    <!-- Search grid spacing -->
+    <dimen name="search_grid_spacing">8dp</dimen>
+    <!-- Default dimensions for normal-sized screens -->
+    <dimen name="card_margin_horizontal">8dp</dimen>
+    <dimen name="card_margin_vertical">6dp</dimen>
+    <dimen name="card_content_padding">16dp</dimen>
+    <dimen name="channel_name_text_size">16sp</dimen>
+    <dimen name="description_text_size">14sp</dimen>
+    <dimen name="divider_margin">12dp</dimen>
+    <dimen name="button_text_size">11sp</dimen>
+    <dimen name="button_icon_size">16dp</dimen>
+</resources> 

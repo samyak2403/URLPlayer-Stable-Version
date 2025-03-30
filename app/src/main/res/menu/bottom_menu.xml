@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/playlist"
+        android:icon="@drawable/ic_playlist"
+        android:title="PlayList" />
+
+    <item
+        android:enabled="false"
+        android:id="@+id/add_Url"
+        android:title="" />
+
+    <item
+        android:id="@+id/profile"
+        android:icon="@drawable/ic_user"
+        android:iconTint="@color/white"
+        android:title="Profile" />
+
+</menu>

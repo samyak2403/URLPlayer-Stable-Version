@@ -1,0 +1,43 @@
+[versions]
+agp = "8.9.1"
+kotlin = "2.0.21"
+coreKtx = "1.15.0"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+appcompat = "1.7.0"
+material = "1.12.0"
+browser = "1.8.0"
+verticalSeekbarBar = "1.2.7"
+doubleTapPlayerView = "1.0.4"
+activity = "1.10.0"
+exoplayerCoreVer = "2.16.1"
+exoplayerUiVer = "2.16.1"
+exoplayerDashVer = "2.16.1"
+constraintlayout = "2.2.0"
+appUpdateKtx = "2.1.0"
+firebaseDatabaseKtx = "21.0.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
+verticalSeekbar = {group = "com.github.lukelorusso", name = "VerticalSeekBar", version.ref = "verticalSeekbarBar"}
+doubleTapPlayerView = {group = "com.github.vkay94", name = "DoubleTapPlayerView", version.ref = "doubleTapPlayerView"}
+androidx-browser = {group = "androidx.browser", name = "browser", version.ref = "browser"}
+
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+exoplayerCore = {group = "com.google.android.exoplayer", name = "exoplayer", version.ref = "exoplayerCoreVer"}
+exoplayerUi = {group = "com.google.android.exoplayer", name = "exoplayer-ui", version.ref = "exoplayerUiVer"}
+exoplayerDash = {group = "com.google.android.exoplayer", name = "exoplayer-dash", version.ref = "exoplayerDashVer"}
+app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "appUpdateKtx" }
+firebase-database-ktx = { group = "com.google.firebase", name = "firebase-database-ktx", version.ref = "firebaseDatabaseKtx" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+

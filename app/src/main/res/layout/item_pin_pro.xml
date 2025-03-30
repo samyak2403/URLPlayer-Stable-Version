@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/pinProRoot"
+    android:layout_width="match_parent"
+    app:cardBackgroundColor="@color/white"
+    app:strokeColor="@color/bg_blue"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <!-- App Icon -->
+        <ImageView
+            android:id="@+id/URLplayerBeta"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:contentDescription="App icon"
+            android:src="@drawable/padlock"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- App Name -->
+        <TextView
+            android:id="@+id/AppName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="PIN PRO"
+            android:textColor="@android:color/black"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@+id/URLplayerBeta"
+            app:layout_constraintEnd_toStartOf="@+id/install_button"
+            app:layout_constraintStart_toEndOf="@+id/URLplayerBeta"
+            app:layout_constraintTop_toTopOf="@+id/URLplayerBeta" />
+
+        <!-- Rating Stars -->
+
+
+
+
+
+
+
+
+        <!-- Install Button -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/install_button"
+            android:layout_width="100dp"
+            android:layout_height="36dp"
+            android:backgroundTint="#2196F3"
+            android:text="Install"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textAllCaps="false"
+            app:layout_constraintBottom_toBottomOf="@+id/AppName"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/AppName"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

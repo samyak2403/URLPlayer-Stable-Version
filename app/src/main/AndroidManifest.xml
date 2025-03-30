@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.samyak.urlplayer">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <application
+        android:name="com.samyak.urlplayer.MyApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Base.Theme.URLPlayerBeta"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+        <activity
+            android:name="com.samyak.urlplayer.screen.splashScreenActivity"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="com.samyak.urlplayer.screen.HomeActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.samyak.urlplayer.screen.UpdateActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.samyak.urlplayer.screen.PlayerActivity"
+            android:configChanges="orientation|screenSize|layoutDirection"
+            android:exported="true"
+            android:supportsPictureInPicture="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <!-- Add this for browser links support -->
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Add data schemes that your app can handle -->
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:scheme="rtmp" />
+                <data android:scheme="rtsp" />
+
+                <!-- Add common video MIME types -->
+                <data android:mimeType="video/*" />
+                <data android:mimeType="application/x-mpegURL" />
+                <data android:mimeType="application/vnd.apple.mpegurl" />
+                <data android:mimeType="application/dash+xml" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="com.samyak.urlplayer.screen.URLActivity"
+            android:exported="true"></activity>
+        <activity
+            android:name="com.samyak.urlplayer.MainActivity"
+            android:exported="false">
+
+        </activity>
+        <activity
+            android:name="com.samyak.urlplayer.screen.AboutActivity"
+            android:exported="false"
+            android:label="About" />
+        <activity
+            android:name="com.samyak.urlplayer.screen.PlaylistActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:exported="false" />
+        <activity
+            android:name="com.samyak.urlplayer.screen.PinManagementActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.samyak.urlplayerbeta.CastOptionsProvider" /> <!-- Sample AdMob app ID: ca-app-pub-3940256099942544~3347511713 -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+    </application>
+
+</manifest>

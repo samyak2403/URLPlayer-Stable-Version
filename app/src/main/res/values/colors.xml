@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="button_text_color">#FFFFFF</color>
+    <color name="text_color">#000000</color>
+    <color name="yellow">#FFC107</color>
+    <color name="Red">#F8144F</color>
+    <color name="textColor">#616161</color>
+    <color name="colorNormalBg">#ffffffff</color>
+    <color name="bg_blue">#03A9F4</color>
+
+    <color name="transparent">@android:color/transparent</color>
+</resources>

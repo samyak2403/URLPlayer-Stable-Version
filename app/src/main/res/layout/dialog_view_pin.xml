@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="For security reasons, we only show an encrypted version of your PIN:"
+        android:textSize="14sp"
+        android:layout_marginBottom="16dp" />
+        
+    <TextView
+        android:id="@+id/pinEncryptedView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:textColor="#3F51B5"
+        android:background="#F5F5F5"
+        android:padding="12dp"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="16dp" />
+        
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/pinCopyButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Copy Encrypted PIN"
+        android:textSize="14sp"
+        app:cornerRadius="8dp"
+        app:icon="@drawable/ic_copy"
+        android:backgroundTint="#3F51B5" />
+        
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/Red"
+        android:text="You can share this encrypted PIN with trusted users. The actual PIN is never displayed for security."
+        android:textSize="12sp"
+        android:textStyle="italic"
+        android:gravity="center"
+        android:layout_marginTop="16dp" />
+        
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="If you need to change your PIN, use the 'Change PIN' option."
+        android:textSize="12sp"
+        android:gravity="center"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:text="Important Information for Decrypting Your PIN:"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:textColor="@color/Red"
+        android:textStyle="bold"
+        android:layout_marginTop="8dp"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="To decrypt the encrypted PIN, you need to install the PIN PRO App. Once the app is installed, follow the instructions within the app to decrypt your PIN."
+        android:textColor="@color/text_color"/>
+
+
+    <include layout="@layout/item_pin_pro"/>
+
+
+
+
+</LinearLayout> 
