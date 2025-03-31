@@ -12,8 +12,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.activity.result.contract.ActivityResultContracts
 import com.samyak.urlplayer.databinding.ActivityMainBinding
-import com.samyak.urlplayer.screen.HomeActivity
-import com.samyak.urlplayer.screen.AboutActivity
 import com.samyak.urlplayer.AppUpdate.InAppUpdateManager
 import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.InstallStatus
@@ -22,6 +20,9 @@ import com.samyak.urlplayer.utils.AppConstants
 import com.samyak.urlplayer.utils.LanguageManager
 import java.util.Locale
 import android.content.Context
+import com.samyak.urlplayer.screen.AboutFragment
+import com.samyak.urlplayer.screen.HomeFragment
+import com.samyak.urlplayer.screen.URLActivity
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -84,10 +85,40 @@ class MainActivity : AppCompatActivity() {
         InAppUpdateManager.init(this, updateResultLauncher)
         InAppUpdateManager.registerListener(installStateUpdatedListener)
 
-        binding.bannerAdContainer.loadBannerAd()
+//        binding.bannerAdContainer.loadBannerAd()
         setupToolbar()
         setupClickListeners()
         setupNavigationDrawer()
+
+        bottomNavigation()
+
+        binding.bottomNav.setOnItemSelectedListener {
+            when (it.itemId) {
+                R.id.playlist-> setFragment(HomeFragment())
+
+                R.id.profile-> setFragment(AboutFragment())
+
+            }
+            return@setOnItemSelectedListener true
+
+        }
+
+
+        // Setup FAB
+        binding.addUrl.setOnClickListener {
+            startActivity(Intent(this, URLActivity::class.java))
+        }
+    }
+
+    private fun bottomNavigation() {
+        // Set the default fragment when app starts
+        setFragment(HomeFragment())
+    }
+
+    private fun setFragment(fragment: androidx.fragment.app.Fragment) {
+        val transaction = supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.content_container, fragment)
+        transaction.commit()
     }
 
     private fun setupToolbar() {
@@ -101,9 +132,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        binding.openHome.setOnClickListener {
-            startActivity(Intent(this, HomeActivity::class.java))
-        }
+//        binding.openHome.setOnClickListener {
+//            startActivity(Intent(this, HomeActivity::class.java))
+//        }
     }
 
     private fun setupNavigationDrawer() {
@@ -126,10 +157,7 @@ class MainActivity : AppCompatActivity() {
                     contactUs()
                     true
                 }
-                R.id.nav_about -> {
-                    startActivity(Intent(this, AboutActivity::class.java))
-                    true
-                }
+
                 else -> false
             }
         }

@@ -101,10 +101,10 @@ class PinManagementActivity : AppCompatActivity() {
     private fun updateEmptyState() {
         if (pinProtectedChannels.isEmpty()) {
             binding.recyclerView.visibility = View.GONE
-            binding.emptyView.visibility = View.VISIBLE
+            binding.emptyStateContainer.visibility = View.VISIBLE
         } else {
             binding.recyclerView.visibility = View.VISIBLE
-            binding.emptyView.visibility = View.GONE
+            binding.emptyStateContainer.visibility = View.GONE
         }
     }
 

@@ -1,64 +1,72 @@
 package com.samyak.urlplayer.screen
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.Menu
+import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
-import android.view.WindowManager
+import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
+import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
+import androidx.fragment.app.Fragment
+import androidx.media3.common.util.UnstableApi
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.samyak.urlplayer.AdManage.loadBannerAd
 import com.samyak.urlplayer.AdManage.showInterstitialAd
 import com.samyak.urlplayer.R
 import com.samyak.urlplayer.adapters.ChannelAdapter
-import com.samyak.urlplayer.databinding.ActivityHomeBinding
+import com.samyak.urlplayer.databinding.FragmentHomeBinding
 import com.samyak.urlplayer.models.Videos
 import com.samyak.urlplayer.utils.ChannelItemDecoration
 import com.samyak2403.custom_toast.TastyToast
-import com.samyak2403.custom_toast.TastyToast.tastyWarning
 
-class HomeActivity : AppCompatActivity() {
+class HomeFragment : Fragment() {
     private lateinit var adapter: ChannelAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var channelList: MutableList<Videos>
-    private lateinit var binding: ActivityHomeBinding
+    private var _binding: FragmentHomeBinding? = null
+    private val binding get() = _binding!!
 
     companion object {
-        private const val TAG = "HomeActivity"
+        private const val TAG = "HomeFragment"
         private const val UPDATE_REQUEST_CODE = 100
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityHomeBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setHasOptionsMenu(true) // Enable options menu in fragment
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentHomeBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         binding.bannerAdContainer.loadBannerAd()
         // Initialize components
-        setupToolbar()
         setupRecyclerView()
     }
 
-    private fun setupToolbar() {
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        supportActionBar?.apply {
-            setDisplayHomeAsUpEnabled(true)
-            setDisplayShowHomeEnabled(true)
-            title = "URL Player Beta"
-        }
-    }
 
     private fun setupRecyclerView() {
         recyclerView = binding.recyclerView
         recyclerView.apply {
-            layoutManager = LinearLayoutManager(this@HomeActivity)
+            layoutManager = LinearLayoutManager(requireContext())
             addItemDecoration(ChannelItemDecoration(resources.getDimensionPixelSize(R.dimen.item_spacing)))
             setHasFixedSize(true)
             // Enable recycling of views
@@ -68,17 +76,7 @@ class HomeActivity : AppCompatActivity() {
         channelList = mutableListOf()
         initializeAdapter()
 
-        // Setup FAB
-        binding.addUrl.setOnClickListener {
-            startActivity(Intent(this, URLActivity::class.java))
-        }
 
-        // Set status bar color
-        window.apply {
-            clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-            addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-            statusBarColor = getColor(R.color.Red)
-        }
     }
 
     private fun initializeAdapter() {
@@ -90,7 +88,7 @@ class HomeActivity : AppCompatActivity() {
                 launchUpdateActivity(video)
             },
             onError = { message ->
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
             }
         )
         recyclerView.adapter = adapter
@@ -116,7 +114,7 @@ class HomeActivity : AppCompatActivity() {
         )
 
         // Create the dialog first so we can reference it in the TextWatcher
-        val dialog = AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(requireContext())
             .setTitle("Enter PIN")
             .setView(dialogView)
             .setPositiveButton("Verify") { _, _ ->
@@ -130,7 +128,7 @@ class HomeActivity : AppCompatActivity() {
                 if (enteredPin.toString() == video.pin) {
                     proceedToPlayVideo(video)
                 } else {
-                    tastyWarning("Incorrect PIN")
+                    TastyToast.show(requireContext(), "Incorrect PIN",TastyToast.Type.WARNING)
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -176,7 +174,7 @@ class HomeActivity : AppCompatActivity() {
                             dialog.dismiss()
                             proceedToPlayVideo(video)
                         } else {
-                            tastyWarning("Incorrect PIN")
+                            TastyToast.show(requireContext(), "Incorrect PIN",TastyToast.Type.WARNING)
                         }
                     }
                 }
@@ -187,7 +185,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun proceedToPlayVideo(video: Videos) {
-        showInterstitialAd(customCode = {
+        (context as Activity).showInterstitialAd(customCode = {
             val url = video.url?.lowercase()
             // Check if this is a playlist file using more comprehensive pattern matching
             if (url != null) {
@@ -205,8 +203,9 @@ class HomeActivity : AppCompatActivity() {
         })
     }
 
+    @OptIn(UnstableApi::class)
     private fun startPlayerActivity(video: Videos) {
-        Intent(this, PlayerActivity::class.java).also { intent ->
+        Intent(requireContext(), PlayerActivity::class.java).also { intent ->
             intent.putExtra("URL", video.url)
             intent.putExtra("USER_AGENT", video.userAgent)
             intent.putExtra("TITLE", video.name)
@@ -215,7 +214,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun startPlaylistActivity(video: Videos) {
-        Intent(this, PlaylistActivity::class.java).also { intent ->
+        Intent(requireContext(), PlaylistActivity::class.java).also { intent ->
             intent.putExtra("URL", video.url)
             intent.putExtra("USER_AGENT", video.userAgent)
             intent.putExtra("TITLE", video.name)
@@ -228,7 +227,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun startUpdateActivity(video: Videos) {
-        Intent(this, UpdateActivity::class.java).also { intent ->
+        Intent(requireContext(), UpdateActivity::class.java).also { intent ->
             intent.putExtra("TITLE", video.name)
             intent.putExtra("URL", video.url)
             intent.putExtra("USER_AGENT", video.userAgent)
@@ -238,7 +237,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun loadSavedChannels() {
         try {
-            val sharedPreferences = getSharedPreferences("M3U8Links", MODE_PRIVATE)
+            val sharedPreferences = requireActivity().getSharedPreferences("M3U8Links", Context.MODE_PRIVATE)
             val links = sharedPreferences.getStringSet("links", mutableSetOf()) ?: mutableSetOf()
 
             // Process channels in background
@@ -310,7 +309,7 @@ class HomeActivity : AppCompatActivity() {
                 newChannelList.sortBy { it.name }
 
                 // Update UI on main thread
-                runOnUiThread {
+                requireActivity().runOnUiThread {
                     channelList.clear()
                     channelList.addAll(newChannelList)
                     adapter.updateItems(channelList)
@@ -319,18 +318,18 @@ class HomeActivity : AppCompatActivity() {
             }.start()
 
         } catch (e: Exception) {
-            TastyToast.show(this, getString(R.string.error_loading_channels), TastyToast.Type.ERROR)
+            TastyToast.show(requireContext(), getString(R.string.error_loading_channels), TastyToast.Type.ERROR)
         }
     }
 
     private fun updateEmptyState() {
         if (channelList.isEmpty()) {
             // Show empty state view
-            findViewById<View>(R.id.empty_state_view)?.visibility = View.VISIBLE
+            binding.root.findViewById<View>(R.id.empty_state_view).visibility = View.VISIBLE
             recyclerView.visibility = View.GONE
         } else {
             // Show recycler view
-            findViewById<View>(R.id.empty_state_view)?.visibility = View.GONE
+            binding.root.findViewById<View>(R.id.empty_state_view).visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
         }
     }
@@ -340,21 +339,16 @@ class HomeActivity : AppCompatActivity() {
         loadSavedChannels()
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
-        return true
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == UPDATE_REQUEST_CODE && resultCode == RESULT_OK) {
+        if (requestCode == UPDATE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             loadSavedChannels()
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.home_menu, menu)
-        return true
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.home_menu, menu)
+        super.onCreateOptionsMenu(menu, inflater)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -363,12 +357,16 @@ class HomeActivity : AppCompatActivity() {
                 launchPinManagement()
                 true
             }
-
             else -> super.onOptionsItemSelected(item)
         }
     }
 
     private fun launchPinManagement() {
-        startActivity(Intent(this, PinManagementActivity::class.java))
+        startActivity(Intent(requireContext(), PinManagementActivity::class.java))
     }
-}
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+} 

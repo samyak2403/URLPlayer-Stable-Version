@@ -5,6 +5,7 @@
         android:id="@+id/action_pin_management"
         android:icon="@drawable/ic_lock"
         android:title="PIN Management"
+        android:iconTint="@color/white"
         app:showAsAction="ifRoom" />
 
 </menu> 

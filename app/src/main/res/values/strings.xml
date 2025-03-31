@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">URL Player</string>
+    <string name="app_name">URL Player </string>
     <string name="back_button">Back</string>
     <string name="add_url">Add URL</string>
     <string name="title">Title</string>
@@ -149,5 +149,11 @@
     <string name="view_pin">View PIN</string>
     <string name="change_pin">Change PIN</string>
     <string name="reset_pin">Reset</string>
+
+    <string name="empty_state_description">No content available. Add items to get started.</string>
+
+    <string name="no_channels_found">No channels found. Try adding some channels or check your connection.</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>

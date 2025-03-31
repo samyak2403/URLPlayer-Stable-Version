@@ -83,6 +83,8 @@ dependencies {
     implementation("androidx.media3:media3-datasource-okhttp:$media3_version")
 
 
+    // Use this for both Android and JVM
+    implementation("io.github.g0dkar:qrcode-kotlin:4.3.0")
 
 
 

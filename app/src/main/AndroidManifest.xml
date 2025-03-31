@@ -39,9 +39,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="com.samyak.urlplayer.screen.HomeActivity"
-            android:exported="false" />
+
         <activity
             android:name="com.samyak.urlplayer.screen.UpdateActivity"
             android:exported="false" />
@@ -79,10 +77,7 @@
             android:exported="false">
 
         </activity>
-        <activity
-            android:name="com.samyak.urlplayer.screen.AboutActivity"
-            android:exported="false"
-            android:label="About" />
+
         <activity
             android:name="com.samyak.urlplayer.screen.PlaylistActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"

@@ -32,17 +32,33 @@
             android:clipToPadding="false"
             android:padding="8dp" />
 
-
-
-        <TextView
-            android:id="@+id/emptyView"
+        <LinearLayout
+            android:id="@+id/empty_state_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:gravity="center"
-            android:padding="16dp"
-            android:text="No PIN protected channels found"
-            android:textSize="16sp"
-            android:visibility="gone" />
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <com.airbnb.lottie.LottieAnimationView
+                android:id="@+id/empty_state_image"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:contentDescription="@string/empty_state_description"
+                app:lottie_autoPlay="true"
+                app:lottie_loop="true"
+                app:lottie_rawRes="@raw/lock" />
+
+            <TextView
+                android:id="@+id/empty_state_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:padding="16dp"
+                android:text="No PIN protected channels found"
+                android:textSize="16sp" />
+        </LinearLayout>
     </FrameLayout>
 </LinearLayout> 
