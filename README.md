@@ -3,6 +3,13 @@
 ## Overview
 URL Player is a versatile Android application that allows users to play videos from various URLs. It supports multiple video formats, streaming protocols, and provides a user-friendly interface for managing and playing media content.
 
+# DEMO QR CODE:
+Scan this QR code to add our demo URL to your contacts:
+
+<td><img src="https://github.com/user-attachments/assets/c40e9181-6b45-4bdb-a08f-698835937cfd" alt="Screenshot 1" width="150px"></td>  
+
+
+
 ## Features
 
 ### Media Playback
