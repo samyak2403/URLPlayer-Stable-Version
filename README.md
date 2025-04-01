@@ -6,8 +6,7 @@ URL Player is a versatile Android application that allows users to play videos f
 # DEMO QR CODE:
 Scan this QR code to add our demo URL to your contacts:
 
-<td><img src="https://github.com/user-attachments/assets/c40e9181-6b45-4bdb-a08f-698835937cfd" alt="Screenshot 1" width="150px"></td>  
-
+<td><img src="https://github.com/user-attachments/assets/86ac284b-8617-44f1-ba85-cf8da5861280" alt="Screenshot 1" width="150px"></td>  
 
 
 ## Features
