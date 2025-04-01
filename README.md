@@ -68,6 +68,34 @@ For sensitive content, the app provides PIN protection:
 - Glide for image loading
 - Firebase for analytics
 
+## 📸 Screenshots 
+
+
+<table align="center" style="width:100%; text-align:center; border-collapse:collapse;">  
+  <tr>  
+    <td><img src="image/01.png" alt="Screenshot 01" width="250px"></td>  
+  </tr>
+</table>
+
+<table align="center" style="width:100%; text-align:center; border-collapse:collapse;">  
+  <tr>  
+    <td><img src="image/1.png" alt="Screenshot 1" width="250px"></td>  
+    <td><img src="image/2.png" alt="Screenshot 2" width="250px"></td>  
+    <td><img src="image/3.png" alt="Screenshot 3" width="250px"></td>  
+  </tr>  
+  <tr>  
+    <td><img src="image/4.png" alt="Screenshot 4" width="250px"></td>  
+    <td><img src="image/5.png" alt="Screenshot 5" width="250px"></td>  
+    <td><img src="image/6.png" alt="Screenshot 6" width="250px"></td>  
+  </tr>  
+  <tr>  
+    <td><img src="image/7.png" alt="Screenshot 7" width="250px"></td>  
+    <td><img src="image/8.png" alt="Screenshot 8" width="250px"></td>  
+    <td><img src="image/9.png" alt="Screenshot 9" width="250px"></td>  
+  </tr> 
+</table>
+
+
 ## Future Enhancements
 - Chromecast support
 - Download manager for offline playback
