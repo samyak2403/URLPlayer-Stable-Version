@@ -32,11 +32,11 @@
 -keep class com.samyak.urlplayer.databinding.** { *; }
 -keep public class com.samyak.urlplayer.MyApplication
 
-# ExoPlayer specific rules
--dontwarn com.google.android.exoplayer2.**
--keep class com.google.android.exoplayer2.** { *; }
--keep interface com.google.android.exoplayer2.** { *; }
--keepclassmembers class com.google.android.exoplayer2.** { *; }
+# Media3/ExoPlayer specific rules
+-dontwarn androidx.media3.**
+-keep class androidx.media3.** { *; }
+-keep interface androidx.media3.** { *; }
+-keepclassmembers class androidx.media3.** { *; }
 
 # Cast SDK rules
 -keep class com.google.android.gms.cast.** { *; }
@@ -59,6 +59,7 @@
 -dontwarn okio.**
 -keep class okhttp3.** { *; }
 -keep interface okhttp3.** { *; }
+-dontwarn javax.annotation.**
 
 # Gson rules
 -keep class sun.misc.Unsafe { *; }
@@ -153,6 +154,22 @@
 -keep class android.media.** { *; }
 -keep class android.media.audiofx.** { *; }
 
+# ML Kit Barcode Scanning
+-keep class com.google.mlkit.vision.** { *; }
+-keep class com.google.mlkit.common.** { *; }
+-dontwarn com.google.mlkit.**
+
+# CameraX
+-keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
+
+# ZXing
+-keep class com.google.zxing.** { *; }
+-dontwarn com.google.zxing.**
+
+# Custom Toast Library
+-keep class com.samyak2403.custom_toast.** { *; }
+
 # Remove logging in release
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
@@ -170,3 +187,172 @@
 
 # Remove debugging info
 -renamesourcefileattribute SourceFile
+
+# Keep JavaScript interface methods
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
+# Glide
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep class * extends com.bumptech.glide.module.AppGlideModule {
+ <init>(...);
+}
+-keep public enum com.bumptech.glide.load.ImageHeaderParser$** {
+  **[] $VALUES;
+  public *;
+}
+-keep class com.bumptech.glide.load.data.ParcelFileDescriptorRewinder$InternalRewinder {
+  *** rewind();
+}
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# Vertical SeekBar
+-keep class com.h6ah4i.android.widget.verticalseekbar.** { *; }
+
+# DoubleTapPlayerView
+-keep class com.github.vkay94.dtpv.** { *; }
+
+# Keep R classes
+-keep class **.R
+-keep class **.R$* {
+    <fields>;
+}
+
+# Additional rules to reduce APK size
+
+# Enable aggressive optimizations
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*,!code/allocation/variable
+-optimizationpasses 8
+-mergeinterfacesaggressively
+-overloadaggressively
+-repackageclasses 'com.samyak.urlplayer'
+-flattenpackagehierarchy 'com.samyak.urlplayer'
+
+# Remove unused code
+-assumenosideeffects class java.lang.String {
+    public String trim();
+    public String substring(int);
+    public String substring(int, int);
+    public String toString();
+    public static String valueOf(int);
+    public static String valueOf(long);
+    public static String valueOf(float);
+    public static String valueOf(double);
+    public static String valueOf(java.lang.Object);
+    public static String valueOf(char[]);
+    public static String valueOf(char[], int, int);
+    public static String copyValueOf(char[]);
+    public static String copyValueOf(char[], int, int);
+}
+
+# Remove more debugging info
+-assumenosideeffects class java.lang.Throwable {
+    public void printStackTrace();
+}
+
+# Remove System.out calls
+-assumenosideeffects class java.io.PrintStream {
+    public void println(...);
+    public void print(...);
+}
+
+# More aggressive shrinking for AndroidX
+-keep class androidx.core.app.** { *; }
+-keep class androidx.fragment.app.** { *; }
+-keep class androidx.appcompat.app.** { *; }
+-keep class androidx.appcompat.widget.** { *; }
+-keep class androidx.recyclerview.widget.** { *; }
+-keep class androidx.viewpager2.widget.** { *; }
+-keep class androidx.constraintlayout.widget.** { *; }
+-keep class com.google.android.material.bottomnavigation.** { *; }
+-keep class com.google.android.material.appbar.** { *; }
+-keep class com.google.android.material.tabs.** { *; }
+-keep class com.google.android.material.button.** { *; }
+-keep class com.google.android.material.textfield.** { *; }
+-dontwarn androidx.**
+
+# More aggressive shrinking for Media3
+-keep class androidx.media3.exoplayer.** { *; }
+-keep class androidx.media3.common.** { *; }
+-keep class androidx.media3.ui.** { *; }
+-keep class androidx.media3.datasource.** { *; }
+-keep class androidx.media3.extractor.** { *; }
+-dontwarn androidx.media3.**
+
+# More aggressive shrinking for Google Play Services
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.ads.identifier.** { *; }
+-keep class com.google.android.gms.cast.framework.** { *; }
+-dontwarn com.google.android.gms.**
+
+# Reduce resources
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+
+# Shrink unused resources
+-keep class **.R$raw { *; }
+-keep class **.R$drawable { *; }
+-keep class **.R$layout { *; }
+-keep class **.R$string { *; }
+-keep class **.R$color { *; }
+-keep class **.R$dimen { *; }
+-keep class **.R$id { *; }
+-keep class **.R$style { *; }
+-keep class **.R$styleable { *; }
+-keep class **.R$menu { *; }
+
+# Reduce native libraries
+-keep class * extends com.google.android.exoplayer2.upstream.UdpDataSource { *; }
+-keep class * extends com.google.android.exoplayer2.upstream.RtpDataSource { *; }
+-keep class * extends com.google.android.exoplayer2.upstream.HttpDataSource { *; }
+
+# Reduce Kotlin reflection
+-keep class kotlin.reflect.jvm.internal.** { *; }
+-keep class kotlin.Metadata { *; }
+
+# Reduce Coroutines
+-keepclassmembernames class kotlinx.coroutines.internal.MainDispatcherFactory { *; }
+-keepclassmembernames class kotlinx.coroutines.CoroutineExceptionHandler { *; }
+-keepclassmembernames class kotlinx.coroutines.android.AndroidExceptionPreHandler { *; }
+-keepclassmembernames class kotlinx.coroutines.android.AndroidDispatcherFactory { *; }
+
+# Reduce Glide
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep class * extends com.bumptech.glide.module.AppGlideModule
+-keep public enum com.bumptech.glide.load.ImageHeaderParser$** {
+  **[] $VALUES;
+  public *;
+}
+-dontwarn com.bumptech.glide.**
+
+# Reduce Firebase
+-keep class com.google.firebase.analytics.** { *; }
+-keep class com.google.firebase.database.** { *; }
+-dontwarn com.google.firebase.**
+
+# Reduce ML Kit
+-keep class com.google.mlkit.vision.barcode.** { *; }
+-dontwarn com.google.mlkit.**
+
+# Reduce CameraX
+-keep class androidx.camera.core.** { *; }
+-keep class androidx.camera.camera2.** { *; }
+-keep class androidx.camera.lifecycle.** { *; }
+-keep class androidx.camera.view.** { *; }
+-dontwarn androidx.camera.**
+
+# Reduce ZXing
+-keep class com.google.zxing.BarcodeFormat { *; }
+-keep class com.google.zxing.DecodeHintType { *; }
+-keep class com.google.zxing.MultiFormatWriter { *; }
+-keep class com.google.zxing.common.BitMatrix { *; }
+-dontwarn com.google.zxing.**
+
+# Keep only necessary Toast library components
+-keep class com.samyak2403.custom_toast.TastyToast { *; }
+-keep class com.samyak2403.custom_toast.TastyToast$Type { *; }

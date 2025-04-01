@@ -35,7 +35,7 @@ android {
         variant.outputs
             .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
             .forEach { output ->
-                val outputFileName = "UrlPlayerBeta-${variant.versionName}-${variant.baseName}.apk"
+                val outputFileName = "UrlPlayer-${variant.versionName}-${variant.baseName}.apk"
                 output.outputFileName = outputFileName
             }
     }
