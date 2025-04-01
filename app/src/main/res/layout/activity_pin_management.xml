@@ -48,7 +48,7 @@
                 android:contentDescription="@string/empty_state_description"
                 app:lottie_autoPlay="true"
                 app:lottie_loop="true"
-                app:lottie_rawRes="@raw/lock" />
+                app:lottie_rawRes="@raw/app_lock" />
 
             <TextView
                 android:id="@+id/empty_state_text"

@@ -157,4 +157,10 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="qr_code">QR Code</string>
 
+    <!-- Add these string resources -->
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="scan_qr_code_instruction">Position the QR code inside the frame</string>
+
+    <string name="toggle_flash">Toggle flashlight</string>
+
 </resources>

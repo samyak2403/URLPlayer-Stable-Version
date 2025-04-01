@@ -38,6 +38,7 @@ class HomeFragment : Fragment() {
     companion object {
         private const val TAG = "HomeFragment"
         private const val UPDATE_REQUEST_CODE = 100
+        private const val QR_SCAN_REQUEST_CODE = 101
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -309,28 +310,39 @@ class HomeFragment : Fragment() {
                 newChannelList.sortBy { it.name }
 
                 // Update UI on main thread
-                requireActivity().runOnUiThread {
-                    channelList.clear()
-                    channelList.addAll(newChannelList)
-                    adapter.updateItems(channelList)
-                    updateEmptyState()
+                val activity = activity
+                if (activity != null && isAdded && !isDetached && !isRemoving) {
+                    activity.runOnUiThread {
+                        // Check if fragment is still attached and binding is not null
+                        if (isAdded && _binding != null) {
+                            channelList.clear()
+                            channelList.addAll(newChannelList)
+                            adapter.updateItems(channelList)
+                            updateEmptyState()
+                        }
+                    }
                 }
             }.start()
 
         } catch (e: Exception) {
-            TastyToast.show(requireContext(), getString(R.string.error_loading_channels), TastyToast.Type.ERROR)
+            if (isAdded && context != null) {
+                TastyToast.show(requireContext(), getString(R.string.error_loading_channels), TastyToast.Type.ERROR)
+            }
         }
     }
 
     private fun updateEmptyState() {
-        if (channelList.isEmpty()) {
-            // Show empty state view
-            binding.root.findViewById<View>(R.id.empty_state_view).visibility = View.VISIBLE
-            recyclerView.visibility = View.GONE
-        } else {
-            // Show recycler view
-            binding.root.findViewById<View>(R.id.empty_state_view).visibility = View.GONE
-            recyclerView.visibility = View.VISIBLE
+        // Check if binding is not null before accessing it
+        if (_binding != null) {
+            if (channelList.isEmpty()) {
+                // Show empty state view
+                binding.root.findViewById<View>(R.id.empty_state_view).visibility = View.VISIBLE
+                recyclerView.visibility = View.GONE
+            } else {
+                // Show recycler view
+                binding.root.findViewById<View>(R.id.empty_state_view).visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
+            }
         }
     }
 
@@ -341,13 +353,15 @@ class HomeFragment : Fragment() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == UPDATE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+        if ((requestCode == UPDATE_REQUEST_CODE || requestCode == QR_SCAN_REQUEST_CODE) 
+            && resultCode == Activity.RESULT_OK) {
             loadSavedChannels()
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.home_menu, menu)
+
         super.onCreateOptionsMenu(menu, inflater)
     }
 
@@ -357,6 +371,7 @@ class HomeFragment : Fragment() {
                 launchPinManagement()
                 true
             }
+
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -364,6 +379,8 @@ class HomeFragment : Fragment() {
     private fun launchPinManagement() {
         startActivity(Intent(requireContext(), PinManagementActivity::class.java))
     }
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()

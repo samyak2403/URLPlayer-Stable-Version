@@ -33,6 +33,8 @@ class ChannelAdapter(
     inner class ChannelViewHolder(private val binding: ItemChannelsBinding) : 
         RecyclerView.ViewHolder(binding.root) {
 
+        val qrCodeImage: ImageView = binding.qrCodeImage
+
         fun bind(item: Videos) {
             try {
                 with(binding) {
@@ -81,20 +83,16 @@ class ChannelAdapter(
 
         private fun generateQRCode(video: Videos) {
             try {
-                val bitmap = QRCodeGenerator.generateQRCode(video)
-                binding.qrCodeImage.setImageBitmap(bitmap)
-                
-                // Set click listener to show larger QR code in dialog
-                binding.qrCodeImage.setOnClickListener {
-                    showQRCodeDialog(video, it.context)
-                }
+                val qrBitmap = QRCodeGenerator.generateQRCode(video)
+                binding.qrCodeImage.setImageBitmap(qrBitmap)
+                binding.qrCodeImage.visibility = View.VISIBLE
             } catch (e: Exception) {
                 onError("Failed to generate QR code: ${e.message}")
                 binding.qrCodeImage.visibility = View.GONE
             }
         }
 
-        private fun showQRCodeDialog(video: Videos, context: Context) {
+        internal fun showQRCodeDialog(video: Videos, context: Context) {
             try {
                 // Create dialog with custom layout
                 val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_qr_code, null)
@@ -148,6 +146,10 @@ class ChannelAdapter(
         try {
             if (position in items.indices) {
                 holder.bind(items[position])
+                holder.qrCodeImage.setOnClickListener {
+                    // Show QR code dialog instead of just setting the image
+                    holder.showQRCodeDialog(items[position], it.context)
+                }
             } else {
                 handleError("Invalid position: $position")
             }

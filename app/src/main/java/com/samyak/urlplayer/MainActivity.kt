@@ -23,6 +23,13 @@ import android.content.Context
 import com.samyak.urlplayer.screen.AboutFragment
 import com.samyak.urlplayer.screen.HomeFragment
 import com.samyak.urlplayer.screen.URLActivity
+import android.view.LayoutInflater
+import android.view.View
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.samyak.urlplayer.databinding.DialogAddUrlOptionsBinding
+import com.samyak.urlplayer.screen.QRScannerActivity
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -106,7 +113,7 @@ class MainActivity : AppCompatActivity() {
 
         // Setup FAB
         binding.addUrl.setOnClickListener {
-            startActivity(Intent(this, URLActivity::class.java))
+            showAddUrlOptionsDialog()
         }
     }
 
@@ -202,6 +209,28 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.error_no_email), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    @OptIn(ExperimentalGetImage::class)
+    private fun showAddUrlOptionsDialog() {
+        val dialog = BottomSheetDialog(this)
+        val dialogBinding = DialogAddUrlOptionsBinding.inflate(LayoutInflater.from(this))
+        dialog.setContentView(dialogBinding.root)
+
+        dialogBinding.btnEnterUrl.setOnClickListener {
+            startActivity(Intent(this, URLActivity::class.java))
+            dialog.dismiss()
+        }
+
+        dialogBinding.btnScanQr.setOnClickListener {
+            // For now, just show a toast that this feature is coming soon
+            // You can replace this with actual QR scanner implementation later
+            startActivity(Intent(this, QRScannerActivity::class.java))
+//            Toast.makeText(this, "QR Scanner coming soon!", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
