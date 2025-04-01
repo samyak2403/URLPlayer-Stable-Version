@@ -82,11 +82,7 @@ dependencies {
     // For loading data using the OkHttp network stack
     implementation("androidx.media3:media3-datasource-okhttp:$media3_version")
 
-
-    // Use this for both Android and JVM
-    implementation("io.github.g0dkar:qrcode-kotlin:4.3.0")
-
-
+    
 
     implementation(libs.androidx.constraintlayout)
     implementation(libs.app.update.ktx)
@@ -136,4 +132,7 @@ dependencies {
     // Add Cast dependencies
     implementation("com.google.android.gms:play-services-cast-framework:21.4.0")
     implementation("androidx.mediarouter:mediarouter:1.6.0")
+
+    implementation ("com.google.zxing:core:3.4.1")
+
 }

@@ -1,14 +1,25 @@
 package com.samyak.urlplayer.adapters
 
-
+import android.graphics.Bitmap
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.appcompat.widget.AppCompatButton
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.MultiFormatWriter
+import com.google.zxing.common.BitMatrix
+import com.samyak.urlplayer.R
 import com.samyak.urlplayer.databinding.ItemChannelsBinding
 import com.samyak.urlplayer.models.Videos
 import com.samyak.urlplayer.utils.ChannelState
+import android.graphics.Color
+import com.samyak.urlplayer.utils.QRCodeGenerator
+import android.app.AlertDialog
+import android.content.Context
 
 class ChannelAdapter(
     private val onPlayClick: (Videos) -> Unit,
@@ -59,9 +70,49 @@ class ChannelAdapter(
                             onPlayClick(items[position])
                         }
                     }
+
+                    // Generate QR code
+                    generateQRCode(item)
                 }
             } catch (e: Exception) {
                 handleError("Error binding channel: ${e.message}")
+            }
+        }
+
+        private fun generateQRCode(video: Videos) {
+            try {
+                val bitmap = QRCodeGenerator.generateQRCode(video)
+                binding.qrCodeImage.setImageBitmap(bitmap)
+                
+                // Set click listener to show larger QR code in dialog
+                binding.qrCodeImage.setOnClickListener {
+                    showQRCodeDialog(video, it.context)
+                }
+            } catch (e: Exception) {
+                onError("Failed to generate QR code: ${e.message}")
+                binding.qrCodeImage.visibility = View.GONE
+            }
+        }
+
+        private fun showQRCodeDialog(video: Videos, context: Context) {
+            try {
+                // Create dialog with custom layout
+                val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_qr_code, null)
+                val qrImageView = dialogView.findViewById<ImageView>(R.id.dialogQrCodeImage)
+                val titleTextView = dialogView.findViewById<TextView>(R.id.dialogQrCodeTitle)
+                
+                // Generate larger QR code for dialog
+                val largeBitmap = QRCodeGenerator.generateQRCode(video, 300, 300)
+                qrImageView.setImageBitmap(largeBitmap)
+                titleTextView.text = video.name
+                
+                // Show dialog
+                AlertDialog.Builder(context)
+                    .setView(dialogView)
+                    .setPositiveButton("Close", null)
+                    .show()
+            } catch (e: Exception) {
+                onError("Failed to show QR code dialog: ${e.message}")
             }
         }
     }
