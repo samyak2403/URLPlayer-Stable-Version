@@ -73,12 +73,6 @@ For sensitive content, the app provides PIN protection:
 
 <table align="center" style="width:100%; text-align:center; border-collapse:collapse;">  
   <tr>  
-    <td><img src="image/01.png" alt="Screenshot 01" width="250px"></td>  
-  </tr>
-</table>
-
-<table align="center" style="width:100%; text-align:center; border-collapse:collapse;">  
-  <tr>  
     <td><img src="image/1.png" alt="Screenshot 1" width="250px"></td>  
     <td><img src="image/2.png" alt="Screenshot 2" width="250px"></td>  
     <td><img src="image/3.png" alt="Screenshot 3" width="250px"></td>  
