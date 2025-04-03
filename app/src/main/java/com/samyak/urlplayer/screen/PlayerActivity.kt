@@ -86,6 +86,7 @@ import androidx.media3.common.VideoSize
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import com.samyak.urlplayer.R
 import java.net.HttpURLConnection
 import java.net.URL
@@ -158,8 +159,8 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         "flv" to "video/x-flv",
 
         // Streaming formats
-        "m3u8" to "application/vnd.apple.mpegurl",  // Updated MIME type
-        "m3u" to "application/vnd.apple.mpegurl",   // Updated MIME type
+        "m3u8" to "application/x-mpegURL",  // Updated MIME type
+        "m3u" to "application/x-mpegURL",   // Updated MIME type
         "ts" to "video/mp2t",
         "mpd" to "application/dash+xml",
         "ism" to "application/vnd.ms-sstr+xml",
@@ -174,7 +175,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         "mpeg" to "video/mpeg",
 
         // Additional streaming formats
-        "hls" to "application/vnd.apple.mpegurl",  // Updated MIME type
+        "hls" to "application/x-mpegURL",  // Updated MIME type
         "dash" to "application/dash+xml",
         "smooth" to "application/vnd.ms-sstr+xml",
 
@@ -185,10 +186,25 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
 
         // Add DASH format
         "mpd" to "application/dash+xml",
-        
+
         // Add RTMP format
         "rtmp" to "video/rtmp",
         "rtmps" to "video/rtmps",
+        
+        // Add additional streaming formats
+        "f4v" to "video/mp4",
+        "f4m" to "application/adobe-f4m",
+        "ssm" to "application/vnd.ms-sstr+xml",
+        "vtt" to "text/vtt",
+        "srt" to "application/x-subrip",
+        "ttml" to "application/ttml+xml",
+        "dfxp" to "application/ttaf+xml",
+        "smil" to "application/smil+xml",
+        "wvm" to "video/wvm",
+        "isml" to "application/vnd.ms-sstr+xml",
+        "m4s" to "video/iso.segment",
+        "cmaf" to "video/mp4",
+        "mss" to "application/vnd.ms-sstr+xml"
     )
 
     private var isPlaying = false
@@ -410,7 +426,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         if (url != null) {
             // Extract channel name from URL parameters if available
             var channelName: String? = null
-            
+
             // Try to extract ID parameter (Hotstar style)
             val idMatch = Regex("(?:id|c|channel)=(\\w+)").find(url!!)
             if (idMatch != null) {
@@ -418,25 +434,25 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 channelName = channelId.replace("_", " ")
                     .replace("-", " ")
                     .capitalize(Locale.getDefault())
-                
+
                 Log.d("PlayerActivity", "Extracted channel ID: $channelId")
-            } 
+            }
             // If no ID parameter, try to extract from path for m3u8 files
             else if (url!!.contains(".m3u8", ignoreCase = true)) {
                 val pathParts = Uri.parse(url).path?.split("/") ?: emptyList()
-                val streamName = pathParts.lastOrNull { 
-                    it.isNotEmpty() && !it.endsWith(".m3u8", ignoreCase = true) 
+                val streamName = pathParts.lastOrNull {
+                    it.isNotEmpty() && !it.endsWith(".m3u8", ignoreCase = true)
                 }
-                
+
                 if (streamName != null) {
                     channelName = streamName.replace("_", " ")
                         .replace("-", " ")
                         .capitalize(Locale.getDefault())
-                    
+
                     Log.d("PlayerActivity", "Extracted stream name from path: $streamName")
                 }
             }
-            
+
             // Set channel name if found and not already set
             if (channelName != null && intent.getStringExtra("CHANNEL_NAME") == null) {
                 intent.putExtra("CHANNEL_NAME", channelName)
@@ -777,13 +793,13 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         try {
             // Get current tracks using Media3 API
             val trackGroups = player.currentTracks.groups
-            
+
             for (group in trackGroups) {
                 // Only look at video tracks
                 if (group.type == C.TRACK_TYPE_VIDEO) {
                     for (i in 0 until group.length) {
                         val trackFormat = group.getTrackFormat(i)
-                        
+
                         if (trackFormat.height > 0 && trackFormat.width > 0) {
                             availableQualities.find {
                                 it.height == trackFormat.height
@@ -879,7 +895,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         }
     }
 
-    // Improve the setupPlayer method to better handle different stream types
+    // Enhance setupPlayer for better format support
     private fun setupPlayer() {
         try {
             if (::player.isInitialized) {
@@ -894,15 +910,17 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                     .setAllowVideoNonSeamlessAdaptiveness(true)
                     .setSelectUndeterminedTextLanguage(true)
                     .setTunnelingEnabled(true) // Enable tunneling for better performance
+                    .setExceedRendererCapabilitiesIfNecessary(true) // Try to play content even if not fully supported
+                    .setPreferredAudioLanguage("en") // Default to English audio
                 )
             }
 
             // Get saved buffer settings or use defaults
             val prefs = getSharedPreferences("player_settings", Context.MODE_PRIVATE)
-            val minBuffer = prefs.getInt("buffer_min_ms", 10000)
-            val maxBuffer = prefs.getInt("buffer_max_ms", 50000)
-            val playbackBuffer = prefs.getInt("playback_buffer_ms", 1000)
-            val rebufferMs = prefs.getInt("rebuffer_ms", 1000)
+            val minBuffer = prefs.getInt("buffer_min_ms", 15000)  // Increased default
+            val maxBuffer = prefs.getInt("buffer_max_ms", 60000)  // Increased default
+            val playbackBuffer = prefs.getInt("playback_buffer_ms", 2500)  // Increased default
+            val rebufferMs = prefs.getInt("rebuffer_ms", 5000)  // Increased default
 
             // Create Media3 player with enhanced buffer configuration
             player = ExoPlayer.Builder(this)
@@ -918,12 +936,16 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                         .setPrioritizeTimeOverSizeThresholds(true)
                         .build()
                 )
+                .setRenderersFactory(
+                    DefaultRenderersFactory(this)
+                    .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                )
                 .build()
 
             playerView.player = player
 
-            // Check if this is likely a Hotstar-style stream
-            val isHotstarStream = isHotstarStyleStream(url)
+            // Detect stream type from URL for better configuration
+            val streamType = detectStreamType(url)
             
             // Create enhanced data source factory with improved headers
             val dataSourceFactory = DefaultHttpDataSource.Factory()
@@ -932,8 +954,13 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 .setConnectTimeoutMs(15000)
                 .setReadTimeoutMs(15000)
                 .setDefaultRequestProperties(
-                    if (isHotstarStream) createHotstarStreamingHeaders()
-                    else createStreamingHeaders()
+                    when (streamType) {
+                        StreamType.HOTSTAR -> createHotstarStreamingHeaders()
+                        StreamType.RTMP -> createRtmpHeaders()
+                        StreamType.DASH -> createDashHeaders()
+                        StreamType.HLS -> createHlsHeaders()
+                        else -> createStreamingHeaders()
+                    }
                 )
 
             // Create media item with enhanced configuration
@@ -948,37 +975,161 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             player.prepare()
 
             // Configure player for specific stream types
-            if (isHotstarStream) {
-                configureHotstarPlayback()
-            } else {
-                configurePlayerForStreamType()
+            when (streamType) {
+                StreamType.HOTSTAR -> configureHotstarPlayback()
+                StreamType.RTMP -> configureRtmpPlayback()
+                StreamType.DASH -> configureDashPlayback()
+                StreamType.HLS -> configureHlsPlayback()
+                StreamType.LIVE -> configureLivePlayback()
+                StreamType.PROGRESSIVE -> configureProgressivePlayback()
             }
 
             // Set up player listeners with enhanced error handling
             setupEnhancedPlayerListeners()
-            
+
         } catch (e: Exception) {
             handleSetupError(e)
+        }
+    }
+
+    // Add this enum for stream types
+    private enum class StreamType {
+        HOTSTAR, RTMP, DASH, HLS, LIVE, PROGRESSIVE
+    }
+
+    // Add this method to detect stream type from URL
+    private fun detectStreamType(url: String?): StreamType {
+        if (url == null) return StreamType.PROGRESSIVE
+        
+        return when {
+            isHotstarStyleStream(url) -> StreamType.HOTSTAR
+            url.startsWith("rtmp://", ignoreCase = true) -> StreamType.RTMP
+            url.contains(".mpd", ignoreCase = true) || 
+                url.contains("/dash/", ignoreCase = true) -> StreamType.DASH
+            url.contains(".m3u8", ignoreCase = true) || 
+                url.contains("/hls/", ignoreCase = true) -> StreamType.HLS
+            url.contains("/live/", ignoreCase = true) || 
+                url.contains("stream", ignoreCase = true) -> StreamType.LIVE
+            else -> StreamType.PROGRESSIVE
+        }
+    }
+
+    // Add these methods for format-specific headers
+    private fun createRtmpHeaders(): Map<String, String> {
+        return mapOf(
+            "Accept" to "*/*",
+            "Connection" to "keep-alive"
+        )
+    }
+
+    private fun createDashHeaders(): Map<String, String> {
+        val host = Uri.parse(url)?.host ?: ""
+        return mapOf(
+            "Accept" to "application/dash+xml,video/*,*/*",
+            "Accept-Language" to "en-US,en;q=0.9",
+            "Origin" to "https://$host",
+            "Referer" to "https://$host",
+            "Connection" to "keep-alive"
+        )
+    }
+
+    private fun createHlsHeaders(): Map<String, String> {
+        val host = Uri.parse(url)?.host ?: ""
+        return mapOf(
+            "Accept" to "application/vnd.apple.mpegurl,application/x-mpegURL,*/*",
+            "Accept-Language" to "en-US,en;q=0.9",
+            "Origin" to "https://$host",
+            "Referer" to "https://$host",
+            "Connection" to "keep-alive"
+        )
+    }
+
+    // Add these configuration methods
+    private fun configureDashPlayback() {
+        try {
+            // DASH-specific configuration
+            player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+            
+            // Configure track selection for DASH
+            trackSelector.setParameters(
+                trackSelector.buildUponParameters()
+                    .setForceHighestSupportedBitrate(false) // Allow adaptive bitrate
+                    .setAllowVideoMixedMimeTypeAdaptiveness(true)
+            )
+            
+            Log.d("PlayerActivity", "Configured player for DASH stream")
+        } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error configuring DASH playback: ${e.message}")
+        }
+    }
+
+    private fun configureHlsPlayback() {
+        try {
+            // HLS-specific configuration
+            player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+            
+            // Configure track selection for HLS
+            trackSelector.setParameters(
+                trackSelector.buildUponParameters()
+                    .setForceHighestSupportedBitrate(false) // Allow adaptive bitrate
+                    .setAllowVideoMixedMimeTypeAdaptiveness(true)
+            )
+            
+            // Check if this is likely a live stream
+            if (url?.contains("/live/", ignoreCase = true) == true || 
+                url?.contains("stream", ignoreCase = true) == true) {
+                isLiveStream = true
+                configureLivePlayback()
+            }
+            
+            Log.d("PlayerActivity", "Configured player for HLS stream")
+        } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error configuring HLS playback: ${e.message}")
+        }
+    }
+
+    private fun configureProgressivePlayback() {
+        try {
+            // Progressive-specific configuration
+            player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+            
+            // Configure track selection for progressive playback
+            trackSelector.setParameters(
+                trackSelector.buildUponParameters()
+                    .setForceHighestSupportedBitrate(true) // Use highest quality for progressive
+                    .setAllowVideoMixedMimeTypeAdaptiveness(false)
+            )
+            
+            Log.d("PlayerActivity", "Configured player for progressive playback")
+        } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error configuring progressive playback: ${e.message}")
         }
     }
 
     // Create better streaming headers based on URL
     private fun createStreamingHeaders(): Map<String, String> {
         val host = Uri.parse(url)?.host ?: ""
-        
+        val referer = "https://$host"
+
         return mapOf(
             "Accept" to "*/*",
             "Accept-Language" to "en-US,en;q=0.9",
-            "Origin" to "https://$host",
-            "Referer" to "https://$host",
+            "Origin" to referer,
+            "Referer" to referer,
             "Connection" to "keep-alive",
             "Sec-Fetch-Dest" to "empty",
             "Sec-Fetch-Mode" to "cors",
             "Sec-Fetch-Site" to "cross-site",
             // Add headers that help with certain streaming services
-            "X-Requested-With" to "com.samyak.urlplayerbeta",
+            "X-Requested-With" to "com.samyak.urlplayer",
             "Pragma" to "no-cache",
-            "Cache-Control" to "no-cache"
+            "Cache-Control" to "no-cache",
+            // Add additional headers for better compatibility
+            "DNT" to "1",
+            "Upgrade-Insecure-Requests" to "1",
+            "Accept-Encoding" to "gzip, deflate, br",
+            // Add range support for better streaming
+            "Range" to "bytes=0-"
         )
     }
 
@@ -999,7 +1150,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             .build()
     }
 
-    // Create appropriate media source based on URL type
+    // Improve createMediaSourceForUrl for better format handling
     private fun createMediaSourceForUrl(url: String?, mediaItem: MediaItem, dataSourceFactory: DefaultHttpDataSource.Factory): MediaSource {
         if (url == null) {
             Log.e("PlayerActivity", "URL is null when creating media source")
@@ -1007,60 +1158,96 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
                 .createMediaSource(mediaItem)
         }
-        
+
         Log.d("PlayerActivity", "Creating media source for URL: $url")
-        
+
         return try {
             when {
                 // RTMP streams
                 url.startsWith("rtmp://", ignoreCase = true) ||
-                url.startsWith("rtmps://", ignoreCase = true) -> {
+                        url.startsWith("rtmps://", ignoreCase = true) -> {
                     Log.d("PlayerActivity", "Detected RTMP stream: $url")
                     isLiveStream = true
-                    
+
                     val rtmpDataSourceFactory = RtmpDataSource.Factory()
                     DefaultMediaSourceFactory(rtmpDataSourceFactory)
                         .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
                         .createMediaSource(mediaItem)
                 }
-                
-                // Hotstar-style streams with m3u8?id=number or php?id=number patterns
-                url.matches(Regex(".*(m3u8|php)(\\?|&)id=\\d+.*")) ||
-                url.matches(Regex(".*\\d+\\.(m3u8|php)(\\?|&)id=\\d+.*")) ||
-                isHotstarStyleStream(url) -> {
-                    Log.d("PlayerActivity", "Detected Hotstar-style stream: $url")
-                    isLiveStream = true
-                    
-                    // Use enhanced HLS media source for Hotstar streams
-                    HlsMediaSource.Factory(dataSourceFactory)
-                        .setAllowChunklessPreparation(true)
-                        .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
-                        .createMediaSource(mediaItem)
-                }
-                
-                // Regular HLS streams
+
+                // HLS streams (m3u8)
                 url.contains(".m3u8", ignoreCase = true) ||
-                url.contains("/hls/", ignoreCase = true) ||
-                url.contains("/live/", ignoreCase = true) -> {
+                        url.contains("/hls/", ignoreCase = true) ||
+                        url.contains("/live/", ignoreCase = true) ||
+                        url.contains("/master", ignoreCase = true) ||
+                        url.contains("/playlist", ignoreCase = true) -> {
                     Log.d("PlayerActivity", "Detected HLS stream: $url")
                     isLiveStream = true
-                    
+
                     HlsMediaSource.Factory(dataSourceFactory)
                         .setAllowChunklessPreparation(true)
                         .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
                         .createMediaSource(mediaItem)
                 }
-                
-                // DASH streams
+
+                // DASH streams (mpd)
                 url.endsWith(".mpd", ignoreCase = true) ||
-                url.contains("dash", ignoreCase = true) -> {
+                        url.contains("dash", ignoreCase = true) ||
+                        url.contains("/manifest", ignoreCase = true) -> {
+                    Log.d("PlayerActivity", "Detected DASH stream: $url")
+                    
                     DashMediaSource.Factory(dataSourceFactory)
                         .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
                         .createMediaSource(mediaItem)
                 }
-                
+
+                // Smooth Streaming (ism/isml)
+                url.contains(".ism", ignoreCase = true) ||
+                        url.contains(".isml", ignoreCase = true) ||
+                        url.contains("smooth", ignoreCase = true) ||
+                        url.contains("mss", ignoreCase = true) -> {
+                    Log.d("PlayerActivity", "Detected Smooth Streaming: $url")
+                    
+                    // For Smooth Streaming, use the appropriate factory
+                    // Note: You need to add the SmoothStreaming extension dependency
+                    try {
+                        val smoothStreamingFactory = Class.forName("androidx.media3.exoplayer.smoothstreaming.SsMediaSource\$Factory")
+                            .getConstructor(Class.forName("androidx.media3.datasource.DataSource\$Factory"))
+                            .newInstance(dataSourceFactory)
+                        
+                        val createMediaSourceMethod = smoothStreamingFactory.javaClass
+                            .getMethod("createMediaSource", MediaItem::class.java)
+                        
+                        createMediaSourceMethod.invoke(smoothStreamingFactory, mediaItem) as MediaSource
+                    } catch (e: Exception) {
+                        Log.e("PlayerActivity", "Smooth Streaming not supported, falling back to default: ${e.message}")
+                        // Fall back to default if SmoothStreaming extension is not available
+                        DefaultMediaSourceFactory(dataSourceFactory)
+                            .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
+                            .createMediaSource(mediaItem)
+                    }
+                }
+
+                // Transport streams (.ts)
+                url.endsWith(".ts", ignoreCase = true) ||
+                        url.endsWith(".mts", ignoreCase = true) ||
+                        url.endsWith(".m2ts", ignoreCase = true) -> {
+                    Log.d("PlayerActivity", "Detected Transport Stream: $url")
+                    
+                    // For TS files, use progressive media source with appropriate MIME type
+                    val tsMediaItem = MediaItem.Builder()
+                        .setUri(Uri.parse(url))
+                        .setMimeType("video/mp2t")
+                        .build()
+                    
+                    DefaultMediaSourceFactory(dataSourceFactory)
+                        .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
+                        .createMediaSource(tsMediaItem)
+                }
+
                 // Progressive playback for everything else
                 else -> {
+                    Log.d("PlayerActivity", "Using default media source for: $url")
                     DefaultMediaSourceFactory(dataSourceFactory)
                         .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
                         .createMediaSource(mediaItem)
@@ -1079,7 +1266,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
     private fun configurePlayerForStreamType() {
         if (isLiveStream) {
             configureLivePlayback()
-            
+
             // Additional configuration for specific stream types
             when {
                 isHotstarStyleStream(url) -> configureHotstarPlayback()
@@ -1094,17 +1281,17 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         try {
             // RTMP streams often need different buffering parameters
             player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView?)
-            
+
             // Use lower latency settings for RTMP
             playerView.controllerShowTimeoutMs = 3000
-            
+
             // Configure track selection for RTMP
             trackSelector.setParameters(
                 trackSelector.buildUponParameters()
                     .setForceHighestSupportedBitrate(false) // Don't force highest quality for RTMP
                     .setMaxVideoBitrate(3_000_000) // Limit to 3Mbps for stability
             )
-            
+
             Log.d("PlayerActivity", "Configured player for RTMP stream")
         } catch (e: Exception) {
             Log.e("PlayerActivity", "Error configuring RTMP playback: ${e.message}")
@@ -1116,14 +1303,14 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         try {
             // Akamaized streams often need special handling
             player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView?)
-            
+
             // Configure for higher quality
             trackSelector.setParameters(
                 trackSelector.buildUponParameters()
                     .setForceHighestSupportedBitrate(true)
                     .setAllowVideoMixedMimeTypeAdaptiveness(true)
             )
-            
+
             Log.d("PlayerActivity", "Configured player for Akamaized stream")
         } catch (e: Exception) {
             Log.e("PlayerActivity", "Error configuring Akamaized playback: ${e.message}")
@@ -1132,28 +1319,48 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
 
     // Add this method to create an enhanced error handling policy
     private fun createEnhancedErrorPolicy(): DefaultLoadErrorHandlingPolicy {
-        return object : DefaultLoadErrorHandlingPolicy(/* minLoadRetryCount= */ 5) {
+        return object : DefaultLoadErrorHandlingPolicy(/* minLoadRetryCount= */ 8) {
             override fun getRetryDelayMsFor(
                 loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo
             ): Long {
                 // Use exponential backoff with a base of 1000ms
                 val baseDelay = 1000L
-                val maxDelay = 10000L // 10 seconds max
+                val maxDelay = 15000L // 15 seconds max
                 val errorCount = loadErrorInfo.errorCount
-                
+
                 // Calculate exponential backoff with jitter
                 val exponentialDelay = minOf(
                     maxDelay,
                     baseDelay * (1L shl (errorCount - 1)) + (Math.random() * 1000).toLong()
                 )
-                
+
+                // Log detailed error information for debugging
                 Log.d("PlayerActivity", "Retry #$errorCount for error: ${loadErrorInfo.exception.message}, delay: $exponentialDelay ms")
-                return exponentialDelay
+                
+                // For streaming errors, use shorter delays to recover faster
+                return when {
+                    // For network errors, use the calculated delay
+                    loadErrorInfo.exception is java.net.SocketTimeoutException ||
+                    loadErrorInfo.exception is java.io.IOException -> exponentialDelay
+                    
+                    // For parsing errors in streaming formats, retry faster
+                    loadErrorInfo.exception.message?.contains("format", ignoreCase = true) == true ||
+                    loadErrorInfo.exception.message?.contains("parse", ignoreCase = true) == true -> 
+                        exponentialDelay / 2
+                    
+                    // Default to calculated delay
+                    else -> exponentialDelay
+                }
             }
-            
+
             override fun getMinimumLoadableRetryCount(dataType: Int): Int {
-                // Increase retry count for live streams
-                return if (isLiveStream) 8 else 5
+                // Increase retry count for live streams and specific data types
+                return when {
+                    isLiveStream -> 10 // More retries for live content
+                    dataType == C.DATA_TYPE_MEDIA -> 8 // More retries for media data
+                    dataType == C.DATA_TYPE_MANIFEST -> 6 // More retries for manifests
+                    else -> 5 // Default retry count
+                }
             }
         }
     }
@@ -1190,11 +1397,11 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 player.setMediaSource(mediaSource)
                 player.prepare()
                 player.play()
-                
+
                 // Hide error views
                 errorTextView.visibility = View.GONE
                 progressBar.visibility = View.VISIBLE
-                
+
                 // Update UI
                 Toast.makeText(this, "Trying alternative playback method...", Toast.LENGTH_SHORT).show()
             }
@@ -1261,9 +1468,9 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 val width = videoFormat.width
                 val height = videoFormat.height
                 val bitrate = videoFormat.bitrate / 1000 // Convert to kbps
-                
+
                 Log.d("PlayerActivity", "Current video quality: ${width}x${height} @ ${bitrate}kbps")
-                
+
                 // You could update a quality indicator in the UI here
             }
         } catch (e: Exception) {
@@ -1799,6 +2006,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             .apply()
     }
 
+    // Enhance getMimeType function for better format detection
     private fun getMimeType(url: String?): String {
         if (url == null) return "video/mp4"
 
@@ -1809,28 +2017,40 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 // RTMP streams
                 lowercaseUrl.startsWith("rtmp://") -> "video/rtmp"
                 lowercaseUrl.startsWith("rtmps://") -> "video/rtmps"
-                
+
                 // HLS streams
                 lowercaseUrl.endsWith(".m3u8") ||
-                        lowercaseUrl.endsWith(".m3u") -> "application/vnd.apple.mpegurl"
+                        lowercaseUrl.endsWith(".m3u") -> "application/x-mpegURL"
 
                 // DASH streams
                 lowercaseUrl.endsWith(".mpd") -> "application/dash+xml"
+
+                // MSS streams
+                lowercaseUrl.contains(".ism") || 
+                        lowercaseUrl.contains("/Manifest") -> "application/vnd.ms-sstr+xml"
 
                 // Then check file extension
                 else -> {
                     val extension = url.substringAfterLast('.', "").lowercase()
                     supportedFormats[extension] ?: when {
+                        // Pattern-based detection for URLs without clear extensions
                         url.contains("dash", ignoreCase = true) -> "application/dash+xml"
-                        url.contains("hls", ignoreCase = true) -> "application/vnd.apple.mpegurl"
+                        url.contains("hls", ignoreCase = true) -> "application/x-mpegURL"
                         url.contains("smooth", ignoreCase = true) -> "application/vnd.ms-sstr+xml"
                         url.contains("rtmp", ignoreCase = true) -> "video/rtmp"
+                        url.contains("/manifest", ignoreCase = true) -> "application/dash+xml"
+                        url.contains("/playlist", ignoreCase = true) -> "application/x-mpegURL"
+                        url.contains("/master", ignoreCase = true) -> "application/x-mpegURL"
+                        url.contains("m3u8", ignoreCase = true) -> "application/x-mpegURL"
+                        url.contains(".ts", ignoreCase = true) -> "video/mp2t"
+                        url.contains("mp4", ignoreCase = true) -> "video/mp4"
                         // Default to MP4 for unknown types
                         else -> "video/mp4"
                     }
                 }
             }
         } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error determining MIME type: ${e.message}")
             "video/mp4"  // Default fallback
         }
     }
@@ -1987,15 +2207,15 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                         // Calculate current position and duration
                         val currentPosition = player.currentPosition
                         val currentTime = System.currentTimeMillis()
-                        
+
                         // For live streams, we need to continuously update the duration
                         // This simulates the time bar moving forward in real-time
                         val elapsedSinceStart = currentTime - liveStreamStartTime
                         val updatedDuration = elapsedSinceStart + 30000 // Keep 30 seconds ahead
-                        
+
                         // Update the live stream duration
                         liveStreamDuration = updatedDuration
-                        
+
                         // Force the player to update its timeline to reflect the new duration
                         // This is a trick to make the time bar update in real-time
                         if (player is ExoPlayer) {
@@ -2003,7 +2223,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                             if (!timeline.isEmpty) {
                                 val window = Timeline.Window()
                                 timeline.getWindow(player.currentMediaItemIndex, window)
-                                
+
                                 // Only update if we have a valid window
                                 if (window.isDynamic) {
                                     // Update position text and duration text
@@ -2011,14 +2231,14 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                                 }
                             }
                         }
-                        
+
                         // Update the time bar's position directly if needed
                         val timeBar = playerView.findViewById<DefaultTimeBar>(
                             androidx.media3.ui.R.id.exo_progress
                         )
                         timeBar?.setDuration(updatedDuration)
                         timeBar?.setPosition(currentPosition)
-                        
+
                     } catch (e: Exception) {
                         Log.e("PlayerActivity", "Error updating live time bar: ${e.message}")
                     }
@@ -2041,13 +2261,13 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             // Get references to text views
             val positionText = playerView.findViewById<TextView>(androidx.media3.ui.R.id.exo_position)
             val durationText = playerView.findViewById<TextView>(androidx.media3.ui.R.id.exo_duration)
-            
+
             // Calculate how far behind live we are
             val timeBehindLive = duration - position
-            
+
             // Check if we're at live edge
             val isAtLiveEdge = timeBehindLive < 5000 // 5 second threshold
-            
+
             // Update position text
             positionText?.apply {
                 if (isAtLiveEdge) {
@@ -2062,7 +2282,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                     setTypeface(typeface, Typeface.NORMAL)
                 }
             }
-            
+
             // Update duration text
             durationText?.apply {
                 text = formatDuration(duration)
@@ -2259,7 +2479,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         try {
             // Get available audio tracks using Media3 API
             val trackGroups = player.currentTracks.groups
-            
+
             for (group in trackGroups) {
                 if (group.type == C.TRACK_TYPE_AUDIO) {
                     hasAudioTracks = true
@@ -2543,10 +2763,10 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
 
         // Determine error type for better handling
         val errorType = categorizeError(error)
-        
+
         // Show appropriate error message
         showErrorMessage(errorType, error)
-        
+
         // Attempt recovery based on error type
         when (errorType) {
             ErrorType.NETWORK -> attemptNetworkErrorRecovery()
@@ -2567,28 +2787,28 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         return when {
             // RTMP specific errors
             error.cause?.message?.contains("rtmp", ignoreCase = true) == true ||
-            url?.startsWith("rtmp://", ignoreCase = true) == true -> ErrorType.RTMP
-            
+                    url?.startsWith("rtmp://", ignoreCase = true) == true -> ErrorType.RTMP
+
             // Network errors
             error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
-            error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
-            error.cause is java.net.SocketTimeoutException ||
-            error.cause is java.net.UnknownHostException -> ErrorType.NETWORK
-            
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ||
+                    error.cause is java.net.SocketTimeoutException ||
+                    error.cause is java.net.UnknownHostException -> ErrorType.NETWORK
+
             // Format errors
             error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
-            error.errorCode == PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE -> ErrorType.FORMAT
-            
+                    error.errorCode == PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE -> ErrorType.FORMAT
+
             // DRM errors
             error.errorCode == PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR ||
-            error.errorCode == PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR -> ErrorType.DRM
-            
+                    error.errorCode == PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR -> ErrorType.DRM
+
             // Renderer errors
             error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
-            error.errorCode == PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED ||
-            // Replace the missing error code with a check for video decoder errors
-            error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED -> ErrorType.RENDERER
-            
+                    error.errorCode == PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED ||
+                    // Replace the missing error code with a check for video decoder errors
+                    error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED -> ErrorType.RENDERER
+
             // Everything else
             else -> ErrorType.UNEXPECTED
         }
@@ -2598,7 +2818,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
     private fun showErrorMessage(errorType: ErrorType, error: PlaybackException) {
         errorTextView.visibility = View.VISIBLE
         progressBar.visibility = View.GONE
-        
+
         val errorMessage = when (errorType) {
             ErrorType.RTMP -> "RTMP stream error. The stream may be offline or the URL is invalid."
             ErrorType.NETWORK -> "Network connection error. Please check your internet connection."
@@ -2607,9 +2827,9 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             ErrorType.RENDERER -> "Your device doesn't support playing this format."
             ErrorType.UNEXPECTED -> "Playback error: ${error.message}"
         }
-        
+
         errorTextView.text = errorMessage
-        
+
         // Show retry button
         showRetryButton(errorType)
     }
@@ -2627,7 +2847,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                         errorTextView.visibility = View.GONE
                         this.visibility = View.GONE
                         progressBar.visibility = View.VISIBLE
-                        
+
                         // Different retry strategies based on error type
                         when (errorType) {
                             ErrorType.RTMP -> attemptRtmpErrorRecovery()
@@ -2647,7 +2867,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
     private fun handleSetupError(error: Exception) {
         Log.e("PlayerActivity", "Setup error: ${error.message}")
         error.printStackTrace()
-        
+
         // Show error UI
         errorTextView.apply {
             visibility = View.VISIBLE
@@ -2674,7 +2894,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                         errorTextView.visibility = View.GONE
                         this.visibility = View.GONE
                         progressBar.visibility = View.VISIBLE
-                        
+
                         // Try to initialize player again
                         setupPlayer()
                     }
@@ -2687,20 +2907,20 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
     // Add helper method to detect Hotstar-style streams
     private fun isHotstarStyleStream(url: String?): Boolean {
         if (url == null) return false
-        
+
         // Enhanced pattern matching for Hotstar-style URLs
         return url.matches(Regex(".*(m3u8|php)(\\?|&)id=\\d+.*")) ||  // Matches m3u8?id=123 or php?id=123
-               url.matches(Regex(".*\\d+\\.(m3u8|php)(\\?|&)id=\\d+.*")) ||  // Matches number.m3u8?id=123 or number.php?id=123
-               url.matches(Regex(".*(m3u8|php)(\\?|&)c(hannel)?=\\w+.*")) || // Channel parameter
-               url.contains("akamaized", ignoreCase = true) ||    // Common in Hotstar streams
-               url.contains("hotstar", ignoreCase = true) ||      // Direct Hotstar URLs
-               url.contains("/hls/", ignoreCase = true) ||        // Common HLS path
-               url.contains("/live/", ignoreCase = true) ||       // Live stream paths
-               url.contains("master.m3u8", ignoreCase = true) ||  // Master playlist
-               url.contains("manifest.m3u8", ignoreCase = true) || // Manifest playlist
-               url.contains("playlist.m3u8", ignoreCase = true) || // Playlist file
-               (url.contains(".m3u8") && url.contains("?")) ||    // Any m3u8 with query params
-               (url.contains(".php") && url.contains("?"))        // Any PHP endpoint with query params
+                url.matches(Regex(".*\\d+\\.(m3u8|php)(\\?|&)id=\\d+.*")) ||  // Matches number.m3u8?id=123 or number.php?id=123
+                url.matches(Regex(".*(m3u8|php)(\\?|&)c(hannel)?=\\w+.*")) || // Channel parameter
+                url.contains("akamaized", ignoreCase = true) ||    // Common in Hotstar streams
+                url.contains("hotstar", ignoreCase = true) ||      // Direct Hotstar URLs
+                url.contains("/hls/", ignoreCase = true) ||        // Common HLS path
+                url.contains("/live/", ignoreCase = true) ||       // Live stream paths
+                url.contains("master.m3u8", ignoreCase = true) ||  // Master playlist
+                url.contains("manifest.m3u8", ignoreCase = true) || // Manifest playlist
+                url.contains("playlist.m3u8", ignoreCase = true) || // Playlist file
+                (url.contains(".m3u8") && url.contains("?")) ||    // Any m3u8 with query params
+                (url.contains(".php") && url.contains("?"))        // Any PHP endpoint with query params
     }
 
     // Add method to configure live playback settings
@@ -2751,10 +2971,10 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         try {
             // Set optimal buffer size for Hotstar streams
             player.setVideoSurfaceView(playerView.videoSurfaceView as SurfaceView?)
-            
+
             // Set playback parameters optimized for Hotstar streams
             player.setPlaybackParameters(PlaybackParameters(1.0f))
-            
+
             // Configure track selection for better quality on Hotstar
             trackSelector.setParameters(
                 trackSelector.buildUponParameters()
@@ -2764,7 +2984,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                     .setSelectUndeterminedTextLanguage(true)
                     .setTunnelingEnabled(true) // Enable tunneling for smoother playback
             )
-            
+
             // Increase buffer size for smoother playback
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
@@ -2775,7 +2995,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 )
                 .setPrioritizeTimeOverSizeThresholds(true)
                 .build()
-            
+
             // Apply the load control if possible
             if (player is ExoPlayer) {
                 // We can't directly set the load control after player creation,
@@ -2788,10 +3008,10 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                     apply()
                 }
             }
-            
+
             // Set longer timeout for Hotstar streams which might take longer to load
             playerView.controllerShowTimeoutMs = 4000
-            
+
             Log.d("PlayerActivity", "Configured player for Hotstar-style stream")
         } catch (e: Exception) {
             Log.e("PlayerActivity", "Error configuring Hotstar playback: ${e.message}")
@@ -2806,7 +3026,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                     Player.STATE_BUFFERING -> {
                         playbackState = PlaybackState.BUFFERING
                         progressBar.visibility = View.VISIBLE
-                        
+
                         // Show buffering percentage if available
                         val bufferingPercentage = player.bufferedPercentage
                         if (bufferingPercentage > 0) {
@@ -2816,17 +3036,17 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                     Player.STATE_READY -> {
                         progressBar.visibility = View.GONE
                         isPlayerReady = true
-                        
+
                         // Check if this is a live stream
                         val isCurrentlyLive = player.isCurrentMediaItemLive
                         if (isCurrentlyLive && !isLiveStream) {
                             isLiveStream = true
                             configureLivePlayback()
-                            
+
                             // Start the live time bar updater for real-time updates
                             startLiveTimeBarUpdater()
                         }
-                        
+
                         if (wasPlayingBeforePause) {
                             playbackState = PlaybackState.PLAYING
                             player.play()
@@ -2850,7 +3070,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 this@PlayerActivity.isPlaying = isPlaying
                 updatePlayPauseButton(isPlaying)
-                
+
                 // Update UI based on playing state
                 if (isPlaying) {
                     // Hide any error views when playback starts
@@ -2865,17 +3085,17 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             override fun onPlayerError(error: PlaybackException) {
                 handlePlayerError(error)
             }
-            
+
             // Add tracking for video format changes
             override fun onVideoSizeChanged(videoSize: VideoSize) {
                 Log.d("PlayerActivity", "Video size changed: ${videoSize.width}x${videoSize.height}")
-                
+
                 // Update quality display if needed
                 if (isManualQualityControl) {
                     updateQualityInfo()
                 }
             }
-            
+
             // Add this to update the time bar when playback parameters change
             override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
                 if (isLiveStream) {
@@ -2883,7 +3103,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                     configureLiveTimeBar()
                 }
             }
-            
+
             // Add this to update the time bar when timeline changes
             override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                 if (isLiveStream && reason != Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) {
@@ -2905,7 +3125,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             showCustomToast("No internet connection. Please check your network settings.")
             return
         }
-        
+
         // Try with increased timeouts
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             if (!isDestroyed && !isFinishing) {
@@ -2917,24 +3137,24 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                         .setConnectTimeoutMs(30000) // Increased timeout
                         .setReadTimeoutMs(30000)    // Increased timeout
                         .setDefaultRequestProperties(createStreamingHeaders())
-                    
+
                     // Create media item
                     val mediaItem = createEnhancedMediaItem(url ?: return@postDelayed)
-                    
+
                     // Create media source
                     val mediaSource = createMediaSourceForUrl(url, mediaItem, dataSourceFactory)
-                    
+
                     // Reset player and try again
                     player.stop()
                     player.clearMediaItems()
                     player.setMediaSource(mediaSource)
                     player.prepare()
                     player.play()
-                    
+
                     // Hide error views
                     errorTextView.visibility = View.GONE
                     progressBar.visibility = View.VISIBLE
-                    
+
                     showCustomToast("Retrying with increased timeout...")
                 } catch (e: Exception) {
                     Log.e("PlayerActivity", "Network recovery failed: ${e.message}")
@@ -2951,24 +3171,24 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 try {
                     // Try to detect format from URL and create appropriate media source
                     val detectedMimeType = detectMimeTypeFromContent(url ?: return@postDelayed)
-                    
+
                     // Create media item with detected mime type
                     val mediaItem = MediaItem.Builder()
                         .setUri(Uri.parse(url))
                         .setMimeType(detectedMimeType)
                         .build()
-                    
+
                     // Reset player and try again
                     player.stop()
                     player.clearMediaItems()
                     player.setMediaItem(mediaItem)
                     player.prepare()
                     player.play()
-                    
+
                     // Hide error views
                     errorTextView.visibility = View.GONE
                     progressBar.visibility = View.VISIBLE
-                    
+
                     showCustomToast("Retrying with detected format...")
                 } catch (e: Exception) {
                     Log.e("PlayerActivity", "Format recovery failed: ${e.message}")
@@ -2999,16 +3219,16 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                             .setMaxVideoSize(640, 360) // Try with lower resolution
                             .setMaxVideoBitrate(1_000_000) // Lower bitrate
                     )
-                    
+
                     // Reset player and try again
                     player.stop()
                     player.prepare()
                     player.play()
-                    
+
                     // Hide error views
                     errorTextView.visibility = View.GONE
                     progressBar.visibility = View.VISIBLE
-                    
+
                     showCustomToast("Retrying with lower quality settings...")
                 } catch (e: Exception) {
                     Log.e("PlayerActivity", "Renderer recovery failed: ${e.message}")
@@ -3040,31 +3260,48 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         }
     }
 
-    // Helper method to detect MIME type from content
+    // Enhance detectMimeTypeFromContent for better format detection
     private fun detectMimeTypeFromContent(url: String): String {
         // Default to a common format
         var mimeType = "video/mp4"
-        
+
         try {
             // Try to make a HEAD request to get content type
             val connection = URL(url).openConnection() as HttpURLConnection
             connection.requestMethod = "HEAD"
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
+            
+            // Add streaming-friendly headers
+            connection.setRequestProperty("User-Agent", userAgent ?: "Mozilla/5.0")
+            connection.setRequestProperty("Accept", "*/*")
+            connection.setRequestProperty("Range", "bytes=0-1") // Just request 1 byte to check type
+            
             connection.connect()
-            
+
             val contentType = connection.contentType
-            if (contentType != null && contentType.startsWith("video/")) {
-                mimeType = contentType
+            if (contentType != null) {
+                // Parse content type, handling parameters
+                val mainType = contentType.split(";")[0].trim()
+                if (mainType.isNotEmpty()) {
+                    mimeType = mainType
+                    Log.d("PlayerActivity", "Detected MIME type from HTTP: $mimeType")
+                }
             }
-            
+
+            // Check for specific headers that might indicate streaming formats
+            val contentDisposition = connection.getHeaderField("Content-Disposition")
+            if (contentDisposition != null && contentDisposition.contains(".m3u8")) {
+                mimeType = "application/x-mpegURL"
+            }
+
             connection.disconnect()
         } catch (e: Exception) {
             Log.e("PlayerActivity", "Error detecting MIME type: ${e.message}")
             // Fall back to detection from URL
-            mimeType = getMimeType(url)
+            mimeType = detectFormatFromUrl(url)
         }
-        
+
         return mimeType
     }
 
@@ -3077,7 +3314,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
     // Add this method to create enhanced streaming headers specifically for Hotstar-style streams
     private fun createHotstarStreamingHeaders(): Map<String, String> {
         val host = Uri.parse(url)?.host ?: ""
-        
+
         return mapOf(
             "Accept" to "*/*",
             "Accept-Language" to "en-US,en;q=0.9",
@@ -3093,6 +3330,43 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             "Cache-Control" to "no-cache",
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         )
+    }
+
+    // Add this new method to detect format from URL patterns
+    private fun detectFormatFromUrl(url: String): String {
+        return when {
+            // HLS patterns
+            url.contains(".m3u8", ignoreCase = true) ||
+            url.contains("/hls/", ignoreCase = true) ||
+            url.contains("/playlist", ignoreCase = true) ||
+            url.contains("/master", ignoreCase = true) -> "application/x-mpegURL"
+            
+            // DASH patterns
+            url.contains(".mpd", ignoreCase = true) ||
+            url.contains("/dash/", ignoreCase = true) ||
+            url.contains("/manifest", ignoreCase = true) -> "application/dash+xml"
+            
+            // Smooth Streaming patterns
+            url.contains(".ism", ignoreCase = true) ||
+            url.contains(".isml", ignoreCase = true) ||
+            url.contains("/smooth/", ignoreCase = true) -> "application/vnd.ms-sstr+xml"
+            
+            // RTMP patterns
+            url.startsWith("rtmp://", ignoreCase = true) ||
+            url.startsWith("rtmps://", ignoreCase = true) -> "video/rtmp"
+            
+            // Transport Stream patterns
+            url.contains(".ts", ignoreCase = true) ||
+            url.contains(".mts", ignoreCase = true) -> "video/mp2t"
+            
+            // Progressive download patterns
+            url.contains(".mp4", ignoreCase = true) -> "video/mp4"
+            url.contains(".webm", ignoreCase = true) -> "video/webm"
+            url.contains(".mkv", ignoreCase = true) -> "video/x-matroska"
+            
+            // Default to MP4 if no pattern matches
+            else -> "video/mp4"
+        }
     }
 
 }

@@ -4,9 +4,12 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.camera.core.CameraSelector
@@ -25,6 +28,9 @@ import com.samyak.urlplayer.databinding.ActivityQrScannerBinding
 import com.samyak2403.custom_toast.TastyToast
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
+import android.view.animation.LinearInterpolator
 
 @androidx.camera.core.ExperimentalGetImage
 class QRScannerActivity : AppCompatActivity() {
@@ -36,6 +42,8 @@ class QRScannerActivity : AppCompatActivity() {
     
     companion object {
         private const val REQUEST_CAMERA_PERMISSION = 100
+        private const val REQUEST_STORAGE_PERMISSION = 101
+        private const val PICK_IMAGE_REQUEST = 102
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +53,7 @@ class QRScannerActivity : AppCompatActivity() {
         
         setupToolbar()
         setupFlashToggle()
+        setupGalleryButton()
         
         // Initialize camera executor
         cameraExecutor = Executors.newSingleThreadExecutor()
@@ -55,6 +64,8 @@ class QRScannerActivity : AppCompatActivity() {
         } else {
             requestCameraPermission()
         }
+        
+        setupScannerAnimation()
     }
     
     private fun setupToolbar() {
@@ -103,19 +114,152 @@ class QRScannerActivity : AppCompatActivity() {
         )
     }
     
+    private fun setupGalleryButton() {
+        binding.galleryButton.setOnClickListener {
+            if (hasStoragePermission()) {
+                openGallery()
+            } else {
+                showStoragePermissionDialog()
+            }
+        }
+    }
+    
+    private fun hasStoragePermission(): Boolean {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                this, Manifest.permission.READ_MEDIA_IMAGES
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(
+                this, Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+    
+    private fun requestStoragePermission() {
+        val permission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        
+        ActivityCompat.requestPermissions(
+            this, arrayOf(permission), REQUEST_STORAGE_PERMISSION
+        )
+    }
+    
+    private fun openGallery() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        startActivityForResult(intent, PICK_IMAGE_REQUEST)
+    }
+    
+    private fun showStoragePermissionDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Storage Permission Required")
+            .setMessage("To upload QR codes from your gallery, the app needs permission to access your storage. Would you like to grant this permission?")
+            .setPositiveButton("Yes") { _, _ ->
+                requestStoragePermission()
+            }
+            .setNegativeButton("No") { dialog, _ ->
+                dialog.dismiss()
+                TastyToast.show(this, "Gallery access requires storage permission", TastyToast.Type.INFO)
+            }
+            .setCancelable(true)
+            .show()
+    }
+    
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera()
-            } else {
-                TastyToast.show(this, "Camera permission is required to scan QR codes", TastyToast.Type.WARNING)
-                finish()
+        when (requestCode) {
+            REQUEST_CAMERA_PERMISSION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startCamera()
+                } else {
+                    TastyToast.show(this, "Camera permission is required to scan QR codes", TastyToast.Type.WARNING)
+                    finish()
+                }
             }
+            REQUEST_STORAGE_PERMISSION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    openGallery()
+                } else {
+                    if (!ActivityCompat.shouldShowRequestPermissionRationale(this, 
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            Manifest.permission.READ_MEDIA_IMAGES
+                        } else {
+                            Manifest.permission.READ_EXTERNAL_STORAGE
+                        }
+                    )) {
+                        // User checked "Don't ask again"
+                        showPermissionSettingsDialog()
+                    } else {
+                        TastyToast.show(this, "Storage permission is required to upload QR codes", TastyToast.Type.WARNING)
+                    }
+                }
+            }
+        }
+    }
+    
+    private fun showPermissionSettingsDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Permission Required")
+            .setMessage("Storage permission is required to upload QR codes from gallery. Please enable it in app settings.")
+            .setPositiveButton("Settings") { _, _ ->
+                // Open app settings
+                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                val uri = android.net.Uri.fromParts("package", packageName, null)
+                intent.data = uri
+                startActivity(intent)
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
+    }
+    
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
+            val imageUri = data.data
+            if (imageUri != null) {
+                processImageFromGallery(imageUri)
+            }
+        }
+    }
+    
+    private fun processImageFromGallery(imageUri: Uri) {
+        try {
+            val image = InputImage.fromFilePath(this, imageUri)
+            val scanner = BarcodeScanning.getClient()
+            
+            scanner.process(image)
+                .addOnSuccessListener { barcodes ->
+                    if (barcodes.isEmpty()) {
+                        TastyToast.show(this, "No QR code found in the image", TastyToast.Type.WARNING)
+                        return@addOnSuccessListener
+                    }
+                    
+                    for (barcode in barcodes) {
+                        if (barcode.valueType == Barcode.TYPE_TEXT) {
+                            barcode.rawValue?.let { qrContent ->
+                                processQRContent(qrContent)
+                                return@addOnSuccessListener
+                            }
+                        }
+                    }
+                    
+                    TastyToast.show(this, "No valid QR code found in the image", TastyToast.Type.WARNING)
+                }
+                .addOnFailureListener { e ->
+                    TastyToast.show(this, "Failed to process image: ${e.message}", TastyToast.Type.ERROR)
+                }
+        } catch (e: Exception) {
+            TastyToast.show(this, "Failed to process image: ${e.message}", TastyToast.Type.ERROR)
         }
     }
     
@@ -326,5 +470,20 @@ class QRScannerActivity : AppCompatActivity() {
                 imageProxy.close()
             }
         }
+    }
+    
+    private fun setupScannerAnimation() {
+        val scannerLine = binding.scannerLine
+        val animator = ObjectAnimator.ofFloat(
+            scannerLine,
+            "translationY",
+            0f,
+            binding.qrCodeOverlay.height.toFloat()
+        )
+        animator.duration = 2000
+        animator.repeatMode = ValueAnimator.REVERSE
+        animator.repeatCount = ValueAnimator.INFINITE
+        animator.interpolator = LinearInterpolator()
+        animator.start()
     }
 } 

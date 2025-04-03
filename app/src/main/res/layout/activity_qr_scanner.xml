@@ -4,13 +4,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-
+    android:background="@color/black"
     tools:context=".screen.QRScannerActivity">
 
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="match_parent"
-
         android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -22,31 +21,52 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="#80000000"
+        android:elevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel"
         app:title="@string/scan_qr_code"
-        
         app:titleTextColor="@color/white" />
 
-    <ImageButton
-        android:id="@+id/flashToggleButton"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/toggle_flash"
-        android:padding="12dp"
-        android:layout_marginEnd="20dp"
-        android:src="@drawable/ic_flash_off"
-        app:layout_constraintBottom_toTopOf="@+id/qrCodeOverlay"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar" />
+    <LinearLayout
+        android:id="@+id/controlsContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/scanInstructionText">
+
+        <ImageButton
+            android:id="@+id/galleryButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="32dp"
+            android:background="@drawable/circle_button_bg"
+            android:contentDescription="@string/upload_from_gallery"
+            android:padding="12dp"
+            android:src="@drawable/ic_gallery"
+            app:tint="@color/white" />
+
+        <ImageButton
+            android:id="@+id/flashToggleButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="32dp"
+            android:background="@drawable/circle_button_bg"
+            android:contentDescription="@string/toggle_flash"
+            android:padding="12dp"
+            android:src="@drawable/ic_flash_off"
+            app:tint="@color/white" />
+    </LinearLayout>
 
     <View
         android:id="@+id/qrCodeOverlay"
-        android:layout_width="250dp"
-        android:layout_height="250dp"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
         android:background="@drawable/qr_scanner_overlay"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -65,8 +85,19 @@
         android:textSize="16sp"
         android:gravity="center"
         android:elevation="4dp"
+        android:layout_marginHorizontal="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/qrCodeOverlay" />
+
+    <!-- Scanner animation -->
+    <View
+        android:id="@+id/scannerLine"
+        android:layout_width="0dp"
+        android:layout_height="2dp"
+        android:background="#76D1FF"
+        app:layout_constraintEnd_toEndOf="@id/qrCodeOverlay"
+        app:layout_constraintStart_toStartOf="@id/qrCodeOverlay"
+        app:layout_constraintTop_toTopOf="@id/qrCodeOverlay" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
