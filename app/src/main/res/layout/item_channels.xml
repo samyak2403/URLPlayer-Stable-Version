@@ -42,7 +42,7 @@
             android:id="@+id/pinIndicator"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:src="@drawable/ic_lock"
+            android:src="@drawable/ic_locked"
             android:visibility="gone"
             android:layout_marginEnd="8dp"
             app:layout_constraintEnd_toStartOf="@+id/edit_button"

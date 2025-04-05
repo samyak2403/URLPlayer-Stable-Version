@@ -12,6 +12,8 @@ import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -87,6 +89,8 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
+import com.google.android.gms.cast.CastMediaControlIntent
+import com.google.android.gms.cast.MediaStatus
 import com.samyak.urlplayer.R
 import java.net.HttpURLConnection
 import java.net.URL
@@ -190,7 +194,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         // Add RTMP format
         "rtmp" to "video/rtmp",
         "rtmps" to "video/rtmps",
-        
+
         // Add additional streaming formats
         "f4v" to "video/mp4",
         "f4m" to "application/adobe-f4m",
@@ -256,40 +260,84 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
     private var lastPositionUpdateTime: Long = System.currentTimeMillis()
     private var isLiveTextAnimating: Boolean = false
 
+    // Add this property to track if we're currently casting
+    private var isCasting = false
+
     private val castSessionManagerListener = object : SessionManagerListener<CastSession> {
-        override fun onSessionStarting(session: CastSession) {}
+        override fun onSessionStarting(session: CastSession) {
+            Log.d("PlayerActivity", "Cast session starting")
+            // Show a progress indicator if needed
+            Toast.makeText(this@PlayerActivity, "Connecting to cast device...", Toast.LENGTH_SHORT).show()
+        }
 
         override fun onSessionStarted(session: CastSession, sessionId: String) {
+            Log.d("PlayerActivity", "Cast session started: $sessionId")
             castSession = session
+            
             // Save current playback position
             val position = player.currentPosition
+            
             // Start casting
             loadRemoteMedia(position)
+            
             // Pause local playback
             player.pause()
+            
+            // Update UI to show casting state
+            updateCastingUI(true)
         }
 
         override fun onSessionStartFailed(session: CastSession, error: Int) {
+            Log.e("PlayerActivity", "Failed to start casting: error code $error")
             Toast.makeText(this@PlayerActivity, "Failed to start casting", Toast.LENGTH_SHORT).show()
+            
+            // Reset casting UI
+            updateCastingUI(false)
         }
 
         override fun onSessionEnding(session: CastSession) {
+            Log.d("PlayerActivity", "Cast session ending")
             // Return to local playback
-            val position = session.remoteMediaClient?.approximateStreamPosition ?: 0
-            player.seekTo(position)
-            player.playWhenReady = true
+            try {
+                val position = session.remoteMediaClient?.approximateStreamPosition ?: 0
+                player.seekTo(position)
+                player.playWhenReady = true
+            } catch (e: Exception) {
+                Log.e("PlayerActivity", "Error during session ending: ${e.message}")
+            }
         }
 
         override fun onSessionEnded(session: CastSession, error: Int) {
+            Log.d("PlayerActivity", "Cast session ended: error code $error")
             castSession = null
+            
+            // Update UI to show local playback state
+            updateCastingUI(false)
+            
+            // Resume local playback if needed
+            if (isPlaying) {
+                player.play()
+            }
         }
 
-        override fun onSessionResuming(session: CastSession, sessionId: String) {}
-        override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
-            castSession = session
+        override fun onSessionResuming(session: CastSession, sessionId: String) {
+            Log.d("PlayerActivity", "Cast session resuming: $sessionId")
         }
-        override fun onSessionResumeFailed(session: CastSession, error: Int) {}
-        override fun onSessionSuspended(session: CastSession, reason: Int) {}
+        
+        override fun onSessionResumed(session: CastSession, wasSuspended: Boolean) {
+            Log.d("PlayerActivity", "Cast session resumed")
+            castSession = session
+            updateCastingUI(true)
+        }
+        
+        override fun onSessionResumeFailed(session: CastSession, error: Int) {
+            Log.e("PlayerActivity", "Failed to resume casting: error code $error")
+            updateCastingUI(false)
+        }
+        
+        override fun onSessionSuspended(session: CastSession, reason: Int) {
+            Log.d("PlayerActivity", "Cast session suspended: reason $reason")
+        }
     }
 
     companion object {
@@ -358,14 +406,23 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
 
         // Initialize cast context
         try {
-            castContext = CastContext.getSharedInstance(this)
+            // Use the correct method signature for getSharedInstance
+            val castContext = CastContext.getSharedInstance(this)
             sessionManager = castContext.sessionManager
+            sessionManager.addSessionManagerListener(castSessionManagerListener, CastSession::class.java)
+            
+            // Set up media route button
+            mediaRouteButton = playerView.findViewById(R.id.mediaRouteButton)
+            CastButtonFactory.setUpMediaRouteButton(this, mediaRouteButton)
         } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error initializing Cast: ${e.message}")
             e.printStackTrace()
         }
 
         // Apply fullscreen mode by default
         playInFullscreen(enable = true)
+
+
     }
 
     private fun handleIntent(intent: Intent) {
@@ -938,7 +995,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 )
                 .setRenderersFactory(
                     DefaultRenderersFactory(this)
-                    .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                        .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
                 )
                 .build()
 
@@ -946,7 +1003,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
 
             // Detect stream type from URL for better configuration
             val streamType = detectStreamType(url)
-            
+
             // Create enhanced data source factory with improved headers
             val dataSourceFactory = DefaultHttpDataSource.Factory()
                 .setUserAgent(userAgent ?: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
@@ -1000,16 +1057,16 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
     // Add this method to detect stream type from URL
     private fun detectStreamType(url: String?): StreamType {
         if (url == null) return StreamType.PROGRESSIVE
-        
+
         return when {
             isHotstarStyleStream(url) -> StreamType.HOTSTAR
             url.startsWith("rtmp://", ignoreCase = true) -> StreamType.RTMP
-            url.contains(".mpd", ignoreCase = true) || 
-                url.contains("/dash/", ignoreCase = true) -> StreamType.DASH
-            url.contains(".m3u8", ignoreCase = true) || 
-                url.contains("/hls/", ignoreCase = true) -> StreamType.HLS
-            url.contains("/live/", ignoreCase = true) || 
-                url.contains("stream", ignoreCase = true) -> StreamType.LIVE
+            url.contains(".mpd", ignoreCase = true) ||
+                    url.contains("/dash/", ignoreCase = true) -> StreamType.DASH
+            url.contains(".m3u8", ignoreCase = true) ||
+                    url.contains("/hls/", ignoreCase = true) -> StreamType.HLS
+            url.contains("/live/", ignoreCase = true) ||
+                    url.contains("stream", ignoreCase = true) -> StreamType.LIVE
             else -> StreamType.PROGRESSIVE
         }
     }
@@ -1049,14 +1106,14 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         try {
             // DASH-specific configuration
             player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
-            
+
             // Configure track selection for DASH
             trackSelector.setParameters(
                 trackSelector.buildUponParameters()
                     .setForceHighestSupportedBitrate(false) // Allow adaptive bitrate
                     .setAllowVideoMixedMimeTypeAdaptiveness(true)
             )
-            
+
             Log.d("PlayerActivity", "Configured player for DASH stream")
         } catch (e: Exception) {
             Log.e("PlayerActivity", "Error configuring DASH playback: ${e.message}")
@@ -1067,21 +1124,21 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         try {
             // HLS-specific configuration
             player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
-            
+
             // Configure track selection for HLS
             trackSelector.setParameters(
                 trackSelector.buildUponParameters()
                     .setForceHighestSupportedBitrate(false) // Allow adaptive bitrate
                     .setAllowVideoMixedMimeTypeAdaptiveness(true)
             )
-            
+
             // Check if this is likely a live stream
-            if (url?.contains("/live/", ignoreCase = true) == true || 
+            if (url?.contains("/live/", ignoreCase = true) == true ||
                 url?.contains("stream", ignoreCase = true) == true) {
                 isLiveStream = true
                 configureLivePlayback()
             }
-            
+
             Log.d("PlayerActivity", "Configured player for HLS stream")
         } catch (e: Exception) {
             Log.e("PlayerActivity", "Error configuring HLS playback: ${e.message}")
@@ -1092,14 +1149,14 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         try {
             // Progressive-specific configuration
             player.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
-            
+
             // Configure track selection for progressive playback
             trackSelector.setParameters(
                 trackSelector.buildUponParameters()
                     .setForceHighestSupportedBitrate(true) // Use highest quality for progressive
                     .setAllowVideoMixedMimeTypeAdaptiveness(false)
             )
-            
+
             Log.d("PlayerActivity", "Configured player for progressive playback")
         } catch (e: Exception) {
             Log.e("PlayerActivity", "Error configuring progressive playback: ${e.message}")
@@ -1195,7 +1252,7 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                         url.contains("dash", ignoreCase = true) ||
                         url.contains("/manifest", ignoreCase = true) -> {
                     Log.d("PlayerActivity", "Detected DASH stream: $url")
-                    
+
                     DashMediaSource.Factory(dataSourceFactory)
                         .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
                         .createMediaSource(mediaItem)
@@ -1207,17 +1264,17 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                         url.contains("smooth", ignoreCase = true) ||
                         url.contains("mss", ignoreCase = true) -> {
                     Log.d("PlayerActivity", "Detected Smooth Streaming: $url")
-                    
+
                     // For Smooth Streaming, use the appropriate factory
                     // Note: You need to add the SmoothStreaming extension dependency
                     try {
                         val smoothStreamingFactory = Class.forName("androidx.media3.exoplayer.smoothstreaming.SsMediaSource\$Factory")
                             .getConstructor(Class.forName("androidx.media3.datasource.DataSource\$Factory"))
                             .newInstance(dataSourceFactory)
-                        
+
                         val createMediaSourceMethod = smoothStreamingFactory.javaClass
                             .getMethod("createMediaSource", MediaItem::class.java)
-                        
+
                         createMediaSourceMethod.invoke(smoothStreamingFactory, mediaItem) as MediaSource
                     } catch (e: Exception) {
                         Log.e("PlayerActivity", "Smooth Streaming not supported, falling back to default: ${e.message}")
@@ -1233,13 +1290,13 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                         url.endsWith(".mts", ignoreCase = true) ||
                         url.endsWith(".m2ts", ignoreCase = true) -> {
                     Log.d("PlayerActivity", "Detected Transport Stream: $url")
-                    
+
                     // For TS files, use progressive media source with appropriate MIME type
                     val tsMediaItem = MediaItem.Builder()
                         .setUri(Uri.parse(url))
                         .setMimeType("video/mp2t")
                         .build()
-                    
+
                     DefaultMediaSourceFactory(dataSourceFactory)
                         .setLoadErrorHandlingPolicy(createEnhancedErrorPolicy())
                         .createMediaSource(tsMediaItem)
@@ -1336,18 +1393,18 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
 
                 // Log detailed error information for debugging
                 Log.d("PlayerActivity", "Retry #$errorCount for error: ${loadErrorInfo.exception.message}, delay: $exponentialDelay ms")
-                
+
                 // For streaming errors, use shorter delays to recover faster
                 return when {
                     // For network errors, use the calculated delay
                     loadErrorInfo.exception is java.net.SocketTimeoutException ||
-                    loadErrorInfo.exception is java.io.IOException -> exponentialDelay
-                    
+                            loadErrorInfo.exception is java.io.IOException -> exponentialDelay
+
                     // For parsing errors in streaming formats, retry faster
                     loadErrorInfo.exception.message?.contains("format", ignoreCase = true) == true ||
-                    loadErrorInfo.exception.message?.contains("parse", ignoreCase = true) == true -> 
+                            loadErrorInfo.exception.message?.contains("parse", ignoreCase = true) == true ->
                         exponentialDelay / 2
-                    
+
                     // Default to calculated delay
                     else -> exponentialDelay
                 }
@@ -1580,6 +1637,17 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         super.onDestroy()
         player.release()
         audioManager?.abandonAudioFocus(null)
+        
+        // Clean up cast session
+        try {
+            if (::sessionManager.isInitialized) {
+                sessionManager.removeSessionManagerListener(castSessionManagerListener, CastSession::class.java)
+            }
+            castSession = null
+        } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error cleaning up cast session: ${e.message}")
+        }
+        
         try {
             if (::loudnessEnhancer.isInitialized) {
                 loudnessEnhancer.release()
@@ -1910,32 +1978,36 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         val remoteMediaClient = castSession.remoteMediaClient ?: return
 
         try {
-            // Create media metadata
+            // Create media metadata with more details
             val videoMetadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE)
-            val title = intent.getStringExtra("CHANNEL_NAME") ?: getString(R.string.video_name)
+            val title = intent.getStringExtra("CHANNEL_NAME") 
+                ?: url?.substringAfterLast('/')?.substringBeforeLast('.')
+                ?: getString(R.string.video_name)
+            
             videoMetadata.putString(MediaMetadata.KEY_TITLE, title)
-
-            // Get correct MIME type and stream type
+            
+            // Get correct MIME type with enhanced detection
             val mimeType = getMimeType(url)
+            
+            // For HLS streams, always use LIVE stream type for better compatibility
             val streamType = when {
-                // HLS streams
+                mimeType == "application/x-mpegURL" || 
                 url?.contains(".m3u8", ignoreCase = true) == true ||
-                        url?.contains(".m3u", ignoreCase = true) == true ||
-                        url?.contains("live", ignoreCase = true) == true ||
-                        url?.contains("stream", ignoreCase = true) == true ->
+                url?.contains(".m3u", ignoreCase = true) == true ||
+                isLiveStream -> 
                     MediaInfo.STREAM_TYPE_LIVE
-
-                // DASH streams
-                url?.contains("dash", ignoreCase = true) == true ||
-                        mimeType == "application/dash+xml" ->
-                    MediaInfo.STREAM_TYPE_BUFFERED
-
-                // Progressive streams (MP4, WebM etc)
-                mimeType.startsWith("video/") ->
-                    MediaInfo.STREAM_TYPE_BUFFERED
-
-                // Default to buffered
+                
+                // Everything else as buffered
                 else -> MediaInfo.STREAM_TYPE_BUFFERED
+            }
+
+            // Add more detailed logging
+            Log.d("PlayerActivity", "Cast media info: URL=$url, MIME=$mimeType, StreamType=$streamType")
+            
+            // For HLS streams, add special metadata to help the receiver
+            if (mimeType == "application/x-mpegURL") {
+                videoMetadata.putString("hlsVersion", "5") // Indicate HLS version
+                videoMetadata.putString("contentType", "HLS") // Indicate content type
             }
 
             // Create media info with proper content type and stream type
@@ -1944,8 +2016,8 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 .setContentType(mimeType)
                 .setMetadata(videoMetadata)
                 .apply {
-                    // Only set duration for buffered streams
-                    if (streamType == MediaInfo.STREAM_TYPE_BUFFERED) {
+                    // Only set duration for buffered streams with valid duration
+                    if (streamType == MediaInfo.STREAM_TYPE_BUFFERED && player.duration > 0) {
                         setStreamDuration(player.duration)
                     }
                 }
@@ -1956,8 +2028,8 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 .setMediaInfo(mediaInfo)
                 .setAutoplay(true)
                 .apply {
-                    // Only set position for buffered streams
-                    if (streamType == MediaInfo.STREAM_TYPE_BUFFERED) {
+                    // Only set position for buffered streams with valid position
+                    if (streamType == MediaInfo.STREAM_TYPE_BUFFERED && position > 0) {
                         setCurrentTime(position)
                     }
                 }
@@ -1968,23 +2040,31 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
                 .addStatusListener { result ->
                     when {
                         result.isSuccess -> {
-                            Toast.makeText(this, "Casting started", Toast.LENGTH_SHORT).show()
-                            getSharedPreferences("cast_prefs", Context.MODE_PRIVATE)
-                                .edit()
-                                .putBoolean("is_casting", true)
-                                .apply()
-                        }
-                        result.isInterrupted -> {
-                            handleCastError("Casting interrupted")
+                            isCasting = true
+                            Toast.makeText(this, "Casting to ${castSession.castDevice?.friendlyName}", Toast.LENGTH_SHORT).show()
+                            updateCastingUI(true)
+                            
+                            // Monitor playback status for HLS streams
+                            if (mimeType == "application/x-mpegURL") {
+                                monitorCastPlayback()
+                            }
                         }
                         else -> {
                             val errorMsg = when (result.statusCode) {
-                                CastStatusCodes.FAILED -> "Format not supported"
-                                CastStatusCodes.INVALID_REQUEST -> "Invalid stream URL"
-                                CastStatusCodes.NETWORK_ERROR -> "Network error"
+                                CastStatusCodes.FAILED -> {
+                                    // For HLS streams that fail, try with a different MIME type
+                                    if (mimeType == "application/x-mpegURL") {
+                                        tryAlternativeCastMethod()
+                                        return@addStatusListener
+                                    }
+                                    "Format not supported for casting. Try a different format."
+                                }
+                                CastStatusCodes.INVALID_REQUEST -> "Invalid stream URL for casting"
+                                CastStatusCodes.NETWORK_ERROR -> "Network error during casting"
                                 CastStatusCodes.APPLICATION_NOT_RUNNING -> "Cast app not running"
                                 else -> "Cast error: ${result.statusCode}"
                             }
+                            Log.e("PlayerActivity", "Cast error: $errorMsg")
                             handleCastError(errorMsg)
                         }
                     }
@@ -2009,49 +2089,27 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
     // Enhance getMimeType function for better format detection
     private fun getMimeType(url: String?): String {
         if (url == null) return "video/mp4"
-
-        return try {
-            // First check for streaming formats
-            val lowercaseUrl = url.lowercase()
-            when {
-                // RTMP streams
-                lowercaseUrl.startsWith("rtmp://") -> "video/rtmp"
-                lowercaseUrl.startsWith("rtmps://") -> "video/rtmps"
-
-                // HLS streams
-                lowercaseUrl.endsWith(".m3u8") ||
-                        lowercaseUrl.endsWith(".m3u") -> "application/x-mpegURL"
-
-                // DASH streams
-                lowercaseUrl.endsWith(".mpd") -> "application/dash+xml"
-
-                // MSS streams
-                lowercaseUrl.contains(".ism") || 
-                        lowercaseUrl.contains("/Manifest") -> "application/vnd.ms-sstr+xml"
-
-                // Then check file extension
-                else -> {
-                    val extension = url.substringAfterLast('.', "").lowercase()
-                    supportedFormats[extension] ?: when {
-                        // Pattern-based detection for URLs without clear extensions
-                        url.contains("dash", ignoreCase = true) -> "application/dash+xml"
-                        url.contains("hls", ignoreCase = true) -> "application/x-mpegURL"
-                        url.contains("smooth", ignoreCase = true) -> "application/vnd.ms-sstr+xml"
-                        url.contains("rtmp", ignoreCase = true) -> "video/rtmp"
-                        url.contains("/manifest", ignoreCase = true) -> "application/dash+xml"
-                        url.contains("/playlist", ignoreCase = true) -> "application/x-mpegURL"
-                        url.contains("/master", ignoreCase = true) -> "application/x-mpegURL"
-                        url.contains("m3u8", ignoreCase = true) -> "application/x-mpegURL"
-                        url.contains(".ts", ignoreCase = true) -> "video/mp2t"
-                        url.contains("mp4", ignoreCase = true) -> "video/mp4"
-                        // Default to MP4 for unknown types
-                        else -> "video/mp4"
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("PlayerActivity", "Error determining MIME type: ${e.message}")
-            "video/mp4"  // Default fallback
+        
+        return when {
+            // HLS streams - use the proper MIME type for HLS
+            url.contains(".m3u8", ignoreCase = true) || 
+            url.contains(".m3u", ignoreCase = true) || 
+            url.contains("/hls/", ignoreCase = true) -> 
+                "application/x-mpegURL"  // This is the correct MIME type for HLS
+            
+            // DASH patterns
+            url.contains(".mpd", ignoreCase = true) ||
+            url.contains("/dash/", ignoreCase = true) ||
+            url.contains("/manifest", ignoreCase = true) -> 
+                "application/dash+xml"
+            
+            // Other formats remain the same...
+            url.startsWith("rtmp://", ignoreCase = true) -> "video/rtmp"
+            url.contains(".mp4", ignoreCase = true) -> "video/mp4"
+            url.contains(".webm", ignoreCase = true) -> "video/webm"
+            
+            // Default
+            else -> "video/mp4"
         }
     }
 
@@ -3271,12 +3329,12 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
             connection.requestMethod = "HEAD"
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
-            
+
             // Add streaming-friendly headers
             connection.setRequestProperty("User-Agent", userAgent ?: "Mozilla/5.0")
             connection.setRequestProperty("Accept", "*/*")
             connection.setRequestProperty("Range", "bytes=0-1") // Just request 1 byte to check type
-            
+
             connection.connect()
 
             val contentType = connection.contentType
@@ -3337,36 +3395,227 @@ class PlayerActivity : BaseActivity(), GestureDetector.OnGestureListener {
         return when {
             // HLS patterns
             url.contains(".m3u8", ignoreCase = true) ||
-            url.contains("/hls/", ignoreCase = true) ||
-            url.contains("/playlist", ignoreCase = true) ||
-            url.contains("/master", ignoreCase = true) -> "application/x-mpegURL"
-            
+                    url.contains("/hls/", ignoreCase = true) ||
+                    url.contains("/playlist", ignoreCase = true) ||
+                    url.contains("/master", ignoreCase = true) -> "application/x-mpegURL"
+
             // DASH patterns
             url.contains(".mpd", ignoreCase = true) ||
-            url.contains("/dash/", ignoreCase = true) ||
-            url.contains("/manifest", ignoreCase = true) -> "application/dash+xml"
-            
+                    url.contains("/dash/", ignoreCase = true) ||
+                    url.contains("/manifest", ignoreCase = true) -> "application/dash+xml"
+
             // Smooth Streaming patterns
             url.contains(".ism", ignoreCase = true) ||
-            url.contains(".isml", ignoreCase = true) ||
-            url.contains("/smooth/", ignoreCase = true) -> "application/vnd.ms-sstr+xml"
-            
+                    url.contains(".isml", ignoreCase = true) ||
+                    url.contains("/smooth/", ignoreCase = true) -> "application/vnd.ms-sstr+xml"
+
             // RTMP patterns
             url.startsWith("rtmp://", ignoreCase = true) ||
-            url.startsWith("rtmps://", ignoreCase = true) -> "video/rtmp"
-            
+                    url.startsWith("rtmps://", ignoreCase = true) -> "video/rtmp"
+
             // Transport Stream patterns
             url.contains(".ts", ignoreCase = true) ||
-            url.contains(".mts", ignoreCase = true) -> "video/mp2t"
-            
+                    url.contains(".mts", ignoreCase = true) -> "video/mp2t"
+
             // Progressive download patterns
             url.contains(".mp4", ignoreCase = true) -> "video/mp4"
             url.contains(".webm", ignoreCase = true) -> "video/webm"
             url.contains(".mkv", ignoreCase = true) -> "video/x-matroska"
-            
+
             // Default to MP4 if no pattern matches
             else -> "video/mp4"
         }
     }
 
+    // Add this new method:
+
+    private fun updateCastingUI(isCasting: Boolean) {
+        try {
+            this.isCasting = isCasting
+            
+            if (isCasting) {
+                // Update cast button icon to show connected state
+                // castButton.setImageResource(R.drawable.ic_cast_connected)
+                
+                // Show casting indicator
+                val deviceName = castSession?.castDevice?.friendlyName ?: "Cast device"
+                val snackbar = Snackbar.make(
+                    binding.root,
+                    "Playing on $deviceName",
+                    Snackbar.LENGTH_LONG
+                )
+                snackbar.show()
+                
+                // Update player controls for casting mode
+                playPauseButton.isEnabled = false  // Disable local play/pause
+                
+                // Show a casting overlay on the video
+                val castingOverlay = TextView(this).apply {
+                    text = "Casting to $deviceName"
+                    setBackgroundColor(Color.parseColor("#80000000"))  // Semi-transparent background
+                    setTextColor(Color.WHITE)
+                    gravity = Gravity.CENTER
+                    textSize = 18f
+                }
+                
+                // Add the overlay to the player view
+                (binding.playerView.parent as? ViewGroup)?.addView(castingOverlay, 
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                    )
+                )
+                
+                // Save casting state
+                getSharedPreferences("cast_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("is_casting", true)
+                    .apply()
+            } else {
+                // Update cast button icon to show disconnected state
+                // castButton.setImageResource(R.drawable.ic_cast)
+                
+                // Reset UI to local playback mode
+                playPauseButton.isEnabled = true  // Re-enable local play/pause
+                
+                // Remove any casting overlay
+                (binding.playerView.parent as? ViewGroup)?.let { parent ->
+                    for (i in 0 until parent.childCount) {
+                        val child = parent.getChildAt(i)
+                        if (child is TextView && child.text.toString().startsWith("Casting to")) {
+                            parent.removeView(child)
+                            break
+                        }
+                    }
+                }
+                
+                // Save casting state
+                getSharedPreferences("cast_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("is_casting", false)
+                    .apply()
+            }
+        } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error updating casting UI: ${e.message}")
+        }
+    }
+
+    // Add this method to check if we're currently casting
+    private fun isCasting(): Boolean {
+        return castSession != null && castSession?.isConnected == true
+    }
+
+    // Add this method to handle disconnection from cast device
+    private fun disconnectFromCast() {
+        try {
+            castSession?.remoteMediaClient?.stop()
+            sessionManager.endCurrentSession(true)
+            castSession = null
+            updateCastingUI(false)
+            
+            // Resume local playback
+            if (isPlayerReady) {
+                player.play()
+            }
+            
+            Toast.makeText(this, "Disconnected from cast device", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error disconnecting from cast: ${e.message}")
+        }
+    }
+
+    // Add this method to control media playback on the cast device
+    private fun controlCastMedia(action: String) {
+        val remoteMediaClient = castSession?.remoteMediaClient ?: return
+        
+        try {
+            when (action) {
+                "play" -> remoteMediaClient.play()
+                "pause" -> remoteMediaClient.pause()
+                "stop" -> remoteMediaClient.stop()
+                "rewind" -> {
+                    val position = remoteMediaClient.approximateStreamPosition - 10000
+                    if (position >= 0) {
+                        remoteMediaClient.seek(position)
+                    }
+                }
+                "forward" -> {
+                    val position = remoteMediaClient.approximateStreamPosition + 10000
+                    remoteMediaClient.seek(position)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PlayerActivity", "Error controlling cast media: ${e.message}")
+        }
+    }
+
+    // Add this method to try alternative casting method for problematic HLS streams
+    private fun tryAlternativeCastMethod() {
+        Toast.makeText(this, "Trying alternative casting method...", Toast.LENGTH_SHORT).show()
+        
+        // Some HLS streams work better with video/mp4 MIME type
+        try {
+            val videoMetadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE)
+            val title = intent.getStringExtra("CHANNEL_NAME") 
+                ?: url?.substringAfterLast('/')?.substringBeforeLast('.')
+                ?: getString(R.string.video_name)
+            
+            videoMetadata.putString(MediaMetadata.KEY_TITLE, title)
+            
+            // Create media info with alternative MIME type
+            val mediaInfo = MediaInfo.Builder(url ?: return)
+                .setStreamType(MediaInfo.STREAM_TYPE_LIVE)
+                .setContentType("video/mp4")  // Try with generic video type
+                .setMetadata(videoMetadata)
+                .build()
+            
+            Log.d("PlayerActivity", "Trying alternative cast with MIME type: video/mp4")
+            
+            // Load media with options
+            val loadRequestData = MediaLoadRequestData.Builder()
+                .setMediaInfo(mediaInfo)
+                .setAutoplay(true)
+                .build()
+            
+            castSession?.remoteMediaClient?.load(loadRequestData)
+                ?.addStatusListener { result ->
+                    if (!result.isSuccess) {
+                        handleCastError("Alternative casting method also failed")
+                    } else {
+                        updateCastingUI(true)
+                    }
+                }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            handleCastError("Error with alternative casting: ${e.message}")
+        }
+    }
+
+    // Add this method to monitor cast playback status
+    private fun monitorCastPlayback() {
+        val handler = Handler(Looper.getMainLooper())
+        val runnable = object : Runnable {
+            override fun run() {
+                if (isCasting && castSession?.isConnected == true) {
+                    val remoteMediaClient = castSession?.remoteMediaClient
+                    val playerState = remoteMediaClient?.playerState
+                    
+                    if (playerState == MediaStatus.PLAYER_STATE_IDLE) {
+                        val idleReason = remoteMediaClient?.idleReason
+                        if (idleReason == MediaStatus.IDLE_REASON_ERROR) {
+                            // Stream failed, try alternative method
+                            tryAlternativeCastMethod()
+                            return
+                        }
+                    }
+                    
+                    // Continue monitoring
+                    handler.postDelayed(this, 5000)
+                }
+            }
+        }
+        
+        // Start monitoring
+        handler.postDelayed(runnable, 5000)
+    }
 }

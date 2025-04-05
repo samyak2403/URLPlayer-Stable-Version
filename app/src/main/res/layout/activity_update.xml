@@ -105,31 +105,143 @@
                     android:maxLines="1"
                     android:imeOptions="actionDone" />
             </com.google.android.material.textfield.TextInputLayout>
-        <LinearLayout
-            android:layout_width="150dp"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="5dp"
-            android:gravity="center_horizontal"
-            android:weightSum="1">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/changePinButton"
-                android:layout_width="0dp"
-                android:layout_height="34dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                android:text="change Pin"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                app:cornerRadius="8dp"
-                android:backgroundTint="@color/transparent"
-                android:elevation="2dp"
-                android:background="@drawable/pin_bg"
-                android:textColor="@color/text_color"
-                app:rippleColor="@color/Red"
-                android:stateListAnimator="@null"/>
 
-        </LinearLayout>
+            <RadioGroup
+                android:id="@+id/radioGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp">
+
+                <RadioButton
+                    android:id="@+id/pin"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Set PIN"
+                    android:tag="PIN_1" />
+
+            </RadioGroup>
+
+            <LinearLayout
+                android:id="@+id/PinGroup"
+                android:visibility="gone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="10.40dp"
+                android:layout_marginTop="16.00dp"
+                android:orientation="horizontal"
+                android:weightSum="4">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginHorizontal="6.50dp"
+                    android:layout_marginTop="5.20dp"
+                    android:layout_weight="1"
+                    app:boxCornerRadiusBottomEnd="19.50dp"
+                    app:boxCornerRadiusBottomStart="19.50dp"
+                    app:boxCornerRadiusTopEnd="19.50dp"
+                    app:boxCornerRadiusTopStart="19.50dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etPin1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:maxLength="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginHorizontal="6.50dp"
+                    android:layout_marginTop="5.20dp"
+                    android:layout_weight="1"
+                    app:boxCornerRadiusBottomEnd="19.50dp"
+                    app:boxCornerRadiusBottomStart="19.50dp"
+                    app:boxCornerRadiusTopEnd="19.50dp"
+                    app:boxCornerRadiusTopStart="19.50dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etPin2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:maxLength="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginHorizontal="6.50dp"
+                    android:layout_marginTop="5.20dp"
+                    android:layout_weight="1"
+                    app:boxCornerRadiusBottomEnd="19.50dp"
+                    app:boxCornerRadiusBottomStart="19.50dp"
+                    app:boxCornerRadiusTopEnd="19.50dp"
+                    app:boxCornerRadiusTopStart="19.50dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etPin3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:maxLength="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginHorizontal="6.50dp"
+                    android:layout_marginTop="5.20dp"
+                    android:layout_weight="1"
+                    app:boxCornerRadiusBottomEnd="19.50dp"
+                    app:boxCornerRadiusBottomStart="19.50dp"
+                    app:boxCornerRadiusTopEnd="19.50dp"
+                    app:boxCornerRadiusTopStart="19.50dp">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etPin4"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:maxLength="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="150dp"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="5dp"
+                android:gravity="center_horizontal"
+                android:weightSum="1">
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/changePinButton"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="change Pin"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="8dp"
+                    android:backgroundTint="@color/transparent"
+                    android:elevation="2dp"
+                    android:background="@drawable/pin_bg"
+                    android:textColor="@color/text_color"
+                    app:rippleColor="@color/Red"
+                    android:stateListAnimator="@null"/>
+
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>

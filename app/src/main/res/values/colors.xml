@@ -626,4 +626,7 @@
     <color name="color_151722">#151722</color>
     <color name="text_color">#151722</color>
 
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+
 </resources>

@@ -137,6 +137,7 @@
             android:contentDescription="@string/fullscreen_btn"
             android:src="@drawable/fullscreen_icon"
             app:tint="@color/white" />
+
     </LinearLayout>
 
 
